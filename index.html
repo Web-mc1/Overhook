@@ -110,7 +110,7 @@
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK & HOLD TO HOOK</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN!</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -151,7 +151,16 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => {
   if (e.button === 0) {
     mouse.isDown = true;
-    if (gameStarted) attachHook();
+    if (gameStarted) {
+      if (!rope.attached) {
+        attachHook();
+      } else {
+        // Fast-clicking reels player closer to the star!
+        if (rope.length > 35) {
+          rope.length -= 18;
+        }
+      }
+    }
   }
 });
 
@@ -196,21 +205,38 @@ function initLevel(lvl) {
   lvlVal.textContent = currentLevel;
   statusVal.textContent = `LEVEL ${currentLevel} - GO!`;
   
-  player.x = 150;
-  player.y = canvas.height * 0.4;
-  player.vx = 4;
-  player.vy = -2;
+  const spawnX = 150;
+  const spawnY = canvas.height * 0.5;
+
+  player.x = spawnX;
+  player.y = spawnY - 30; // Spawn resting slightly above the start cloud
+  player.vx = 0;
+  player.vy = 0;
   cameraX = 0;
   rope.attached = false;
 
   stars = [];
   clouds = [];
 
+  // Guaranteed Spawn Cloud
+  clouds.push({
+    x: spawnX,
+    y: spawnY,
+    w: 140,
+    h: 35,
+    bumps: [
+      { offsetX: -30, offsetY: -18, radius: 14 },
+      { offsetX: 0, offsetY: -20, radius: 16 },
+      { offsetX: 30, offsetY: -18, radius: 14 }
+    ],
+    color: '#ffffff',
+    bounceSquish: 0
+  });
+
   const starCount = 12 + currentLevel * 3;
-  let lastX = 250;
+  let lastX = 280;
 
   for (let i = 0; i < starCount; i++) {
-    // Space stars far enough apart that you can't just bounce from cloud to cloud
     const spacing = 280 + Math.random() * 120 + (currentLevel * 8);
     const starX = lastX + spacing;
     const starY = (canvas.height * 0.25) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.2);
@@ -232,14 +258,12 @@ function initLevel(lvl) {
       offset: Math.random() * 100
     });
 
-    // Only place clouds under CERTAIN stars (e.g. 50% chance) to create un-bounceable void gaps
     if (Math.random() > 0.45) {
       const w = 90 + Math.random() * 60;
       const h = 30 + Math.random() * 15;
       const cloudX = starX + (Math.random() * 40 - 20);
       const cloudY = Math.min(canvas.height - 70, starY + 160 + Math.random() * 80);
 
-      // Check against existing clouds to strictly prevent overlapping
       let overlaps = false;
       for (let existing of clouds) {
         const dx = Math.abs(existing.x - cloudX);
@@ -324,12 +348,8 @@ function update() {
     }
   });
 
-  // Grapple physics
+  // Grapple constraint (Manual reel-in mode via clicking)
   if (rope.attached && rope.targetStar) {
-    if (rope.length > 40) {
-      rope.length -= 3.2;
-    }
-
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
     const currentDist = Math.sqrt(dx * dx + dy * dy);
@@ -434,12 +454,10 @@ function drawCloud(c) {
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
   ctx.fillStyle = c.color;
 
-  // Base pill platform
   ctx.beginPath();
   ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, c.h / 2);
   ctx.fill();
 
-  // Draw randomized top fluff bumps
   c.bumps.forEach(b => {
     ctx.beginPath();
     ctx.arc(b.offsetX, b.offsetY, b.radius, 0, Math.PI * 2);
