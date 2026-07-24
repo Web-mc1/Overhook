@@ -112,7 +112,7 @@
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">HOLD LEFT CLICK & PRESS SPACE TO REEL IN</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN! STOP CLICKING TO LAUNCH</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -209,12 +209,22 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Reel In Trigger
+// Reel In & Fast-Click Timing
+let releaseTimeout = null;
+
 function triggerReelIn() {
   if (rope.attached && rope.length > 25) {
-    rope.length -= 35;
+    rope.length -= 28; // Reels in per click
     playReelSound();
   }
+}
+
+function resetReleaseTimer() {
+  clearTimeout(releaseTimeout);
+  // Auto-releases hook if you stop clicking for 300ms
+  releaseTimeout = setTimeout(() => {
+    releaseHook();
+  }, 300);
 }
 
 // Mouse Controls
@@ -226,47 +236,33 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 0) { // Left click
+  if (e.button === 0) { // Left Click
     mouse.isDown = true;
-    if (gameStarted && !rope.attached) {
-      attachHook();
+    if (gameStarted) {
+      if (!rope.attached) {
+        attachHook();
+      } else {
+        triggerReelIn();
+      }
+      resetReleaseTimer();
     }
-  } else if (e.button === 2) { // Right click reels in
-    if (gameStarted) triggerReelIn();
   }
 });
 
 window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
-    releaseHook();
   }
 });
 
-// Mouse Wheel Reel In
-window.addEventListener('wheel', e => {
-  if (gameStarted) {
-    triggerReelIn();
-  }
-});
-
-// Keyboard Reel In (Spacebar or Up Arrow)
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-    if (gameStarted) triggerReelIn();
-  }
-});
-
-// Disable Context Menu on Right Click
+// Prevent Context Menu
 window.addEventListener('contextmenu', e => e.preventDefault());
 
 startBtn.addEventListener('click', () => {
-  // Resume Web Audio Context for SFX
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
 
-  // Play Background Music Track (35% volume)
   bgMusic.volume = 0.35;
   bgMusic.play().catch(e => console.log("Music play blocked by browser:", e));
 
@@ -427,6 +423,7 @@ function attachHook() {
 }
 
 function releaseHook() {
+  clearTimeout(releaseTimeout);
   rope.attached = false;
   rope.targetStar = null;
 }
@@ -470,7 +467,7 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  // Cloud bouncing - TOP, BOTTOM, AND SIDES!
+  // Cloud bouncing - TOP, BOTTOM, AND SIDES
   clouds.forEach(c => {
     if (
       player.x + player.radius > c.x - c.w / 2 &&
@@ -580,7 +577,7 @@ function render() {
   clouds.forEach(c => drawCloud(c));
 
   if (gameStarted || rope.attached) {
-    // 40% Opaque Finish Line
+    // Finish Line
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
     
