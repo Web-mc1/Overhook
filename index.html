@@ -6,26 +6,18 @@
   <title>Overhook - Web Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #1e2029;
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+    html, body {
+      width: 100%;
+      height: 100%;
       overflow: hidden;
+      background: #71cbf4;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       user-select: none;
     }
     #game-container {
       position: relative;
-      width: 900px;
-      height: 520px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-      border-radius: 16px;
-      overflow: hidden;
-      border: 4px solid #ffffff;
-      background: #71cbf4;
+      width: 100vw;
+      height: 100vh;
     }
     canvas {
       display: block;
@@ -41,36 +33,36 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 50px;
+      padding: 60px;
       z-index: 10;
     }
     .title-box {
       color: #ffffff;
     }
     .title-text {
-      font-size: 56px;
+      font-size: 72px;
       font-weight: 900;
-      text-shadow: 3px 3px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+      text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
       line-height: 1.1;
     }
     .author-text {
-      font-size: 32px;
+      font-size: 38px;
       font-weight: 800;
       color: #ffffff;
       display: block;
-      margin-top: 5px;
+      margin-top: 10px;
       text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
     }
     .start-btn {
       align-self: flex-end;
       background: #ffffff;
       color: #3baee0;
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 900;
-      padding: 14px 32px;
-      border-radius: 12px;
-      border: 3px solid #ffffff;
-      box-shadow: 0 6px 0 #2a8cb9, 0 8px 15px rgba(0,0,0,0.3);
+      padding: 18px 42px;
+      border-radius: 16px;
+      border: 4px solid #ffffff;
+      box-shadow: 0 8px 0 #2a8cb9, 0 10px 20px rgba(0,0,0,0.3);
       cursor: pointer;
       transition: transform 0.1s;
     }
@@ -85,30 +77,23 @@
     /* HUD */
     #hud {
       position: absolute;
-      top: 15px;
-      left: 15px;
-      right: 15px;
+      top: 20px;
+      left: 20px;
+      right: 20px;
       display: none;
       justify-content: space-between;
       pointer-events: none;
       font-weight: 800;
-      font-size: 18px;
+      font-size: 22px;
       color: #fff;
       text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
       z-index: 5;
     }
     .pill {
-      background: rgba(0,0,0,0.3);
-      padding: 8px 16px;
-      border-radius: 20px;
+      background: rgba(0,0,0,0.35);
+      padding: 10px 22px;
+      border-radius: 30px;
       border: 2px solid rgba(255,255,255,0.4);
-    }
-    #instructions {
-      margin-top: 15px;
-      color: #a0aab0;
-      font-size: 14px;
-      text-align: center;
-      font-weight: 600;
     }
   </style>
 </head>
@@ -129,11 +114,7 @@
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
-  <canvas id="gameCanvas" width="900" height="520"></canvas>
-</div>
-
-<div id="instructions">
-  <b>Controls:</b> Mouse Click & Hold = Grapple & Reel In | Release = Slingshot Launch | Bounce on Clouds!
+  <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
@@ -151,6 +132,13 @@ let gameStarted = false;
 let currentLevel = 1;
 let cameraX = 0;
 let bounceCount = 0;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 // Mouse state
 const mouse = { x: 0, y: 0, isDown: false };
@@ -181,13 +169,13 @@ startBtn.addEventListener('click', () => {
   initLevel(1);
 });
 
-// Player object
+// Player
 const player = {
-  x: 100,
-  y: 250,
+  x: 150,
+  y: 300,
   vx: 0,
   vy: 0,
-  radius: 18,
+  radius: 20,
   color: '#ff4b5c'
 };
 
@@ -196,22 +184,21 @@ const rope = {
   attached: false,
   targetStar: null,
   length: 0,
-  maxLength: 360
+  maxLength: 450
 };
 
-// Level elements
 let stars = [];
 let clouds = [];
-let goalStar = { x: 0, y: 0, size: 30 };
+let finishLine = { x: 0, width: 45 };
 
 function initLevel(lvl) {
   currentLevel = Math.min(Math.max(1, lvl), 30);
   lvlVal.textContent = currentLevel;
   statusVal.textContent = `LEVEL ${currentLevel} - GO!`;
   
-  player.x = 100;
-  player.y = 250;
-  player.vx = 3;
+  player.x = 150;
+  player.y = canvas.height * 0.4;
+  player.vx = 4;
   player.vy = -2;
   cameraX = 0;
   rope.attached = false;
@@ -219,53 +206,64 @@ function initLevel(lvl) {
   stars = [];
   clouds = [];
 
-  // Generate 30 unique procedural designs based on level index
-  const starCount = 4 + Math.floor(currentLevel * 0.4);
-  const baseSpacing = 160 + (currentLevel * 12);
-  let lastX = 180;
+  const starCount = 12 + currentLevel * 3;
+  let lastX = 250;
 
   for (let i = 0; i < starCount; i++) {
-    // Height patterns change every level
-    const yPattern = Math.sin(i * (0.8 + currentLevel * 0.1)) * (60 + (currentLevel % 5) * 15);
-    const starX = lastX + baseSpacing + (Math.sin(i + currentLevel) * 40);
-    const starY = 160 + yPattern;
+    const spacing = 220 + Math.random() * 120 + (currentLevel * 10);
+    const starX = lastX + spacing;
+    const starY = (canvas.height * 0.25) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.22);
     
-    // Moving stars on higher levels
-    const isMoving = currentLevel > 5 && (i % 2 === 0);
-    const moveSpeed = isMoving ? 0.02 + (currentLevel * 0.003) : 0;
-    const moveRange = isMoving ? 30 + (currentLevel % 4) * 15 : 0;
+    // Slowed down moving speed significantly
+    const isMoving = currentLevel > 3 && (Math.random() < 0.45);
+    const moveSpeed = isMoving ? 0.0015 + (Math.random() * 0.001) : 0;
+    const moveRange = isMoving ? 35 + Math.random() * 45 : 0;
 
     stars.push({
       baseX: starX,
       baseY: starY,
       x: starX,
       y: starY,
-      size: Math.max(16, 24 - Math.floor(currentLevel * 0.2)),
+      size: Math.max(18, 26 - Math.floor(currentLevel * 0.25)),
       pulse: Math.random() * Math.PI * 2,
       isMoving: isMoving,
       moveSpeed: moveSpeed,
       moveRange: moveRange,
-      offset: i
+      offset: Math.random() * 100
     });
 
-    // Bouncy Cloud platforms
-    clouds.push({
-      x: starX - 30 + Math.sin(i) * 30,
-      y: Math.min(420, starY + 110 + (i % 3) * 20),
-      w: 110 + Math.random() * 30,
-      h: 35,
-      bounceSquish: 0
-    });
+    // Unique Randomized Cloud Generation
+    const cloudsPerStar = 1 + Math.floor(Math.random() * 2);
+    for (let c = 0; c < cloudsPerStar; c++) {
+      const w = 90 + Math.random() * 100;
+      const h = 30 + Math.random() * 20;
+      
+      // Generate random fluff circles for distinct cloud silhouettes
+      const bumps = [];
+      const bumpCount = 3 + Math.floor(Math.random() * 4);
+      for (let b = 0; b < bumpCount; b++) {
+        bumps.push({
+          offsetX: (Math.random() - 0.5) * (w * 0.7),
+          offsetY: -h / 2 + (Math.random() * -10),
+          radius: 12 + Math.random() * 14
+        });
+      }
+
+      clouds.push({
+        x: starX + (Math.random() * 180 - 90),
+        y: Math.min(canvas.height - 80, starY + 110 + Math.random() * 150),
+        w: w,
+        h: h,
+        bumps: bumps,
+        color: `hsl(${190 + Math.random() * 20}, ${80 + Math.random() * 20}%, ${95 + Math.random() * 5}%)`,
+        bounceSquish: 0
+      });
+    }
 
     lastX = starX;
   }
 
-  // Final Goal Star
-  goalStar = {
-    x: lastX + 220,
-    y: 180 + Math.sin(currentLevel) * 40,
-    size: 32
-  };
+  finishLine.x = lastX + 320;
 }
 
 function attachHook() {
@@ -275,8 +273,7 @@ function attachHook() {
   let closestStar = null;
   let minDist = rope.maxLength;
 
-  const allTargets = [...stars, goalStar];
-  allTargets.forEach(s => {
+  stars.forEach(s => {
     const dx = s.x - player.x;
     const dy = s.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -305,19 +302,19 @@ function update() {
   if (!gameStarted) return;
 
   // Gravity
-  player.vy += 0.35;
+  player.vy += 0.38;
 
-  // Update moving stars
-  stars.forEach((s, idx) => {
+  // Smooth & gentle star motion
+  stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
     }
   });
 
-  // Reel-in physics when holding click
+  // Grapple physics
   if (rope.attached && rope.targetStar) {
     if (rope.length > 40) {
-      rope.length -= 2.5; // Automatic pull towards star
+      rope.length -= 3.2;
     }
 
     const dx = player.x - rope.targetStar.x;
@@ -338,15 +335,13 @@ function update() {
     }
   }
 
-  // Air Drag
   player.vx *= 0.996;
   player.vy *= 0.996;
 
-  // Position updates
   player.x += player.vx;
   player.y += player.vy;
 
-  // Cloud Bouncing Collision
+  // Cloud bouncing
   clouds.forEach(c => {
     if (
       player.x + player.radius > c.x - c.w/2 &&
@@ -355,10 +350,9 @@ function update() {
       player.y - player.radius <= c.y + c.h/2 &&
       player.vy > 0
     ) {
-      // Bounce player upward!
-      player.vy = -12.5;
-      player.vx += 1.5; // forward momentum boost
-      c.bounceSquish = 10;
+      player.vy = -13.5;
+      player.vx += 2.0;
+      c.bounceSquish = 12;
       bounceCount++;
       bounceVal.textContent = bounceCount;
     }
@@ -366,13 +360,10 @@ function update() {
     if (c.bounceSquish > 0) c.bounceSquish -= 1;
   });
 
-  // Smooth camera follow
-  cameraX += (player.x - 200 - cameraX) * 0.08;
+  cameraX += (player.x - canvas.width * 0.25 - cameraX) * 0.08;
 
-  // Goal collision check
-  const gdx = player.x - goalStar.x;
-  const gdy = player.y - goalStar.y;
-  if (Math.sqrt(gdx * gdx + gdy * gdy) < player.radius + goalStar.size) {
+  // Win condition
+  if (player.x + player.radius >= finishLine.x) {
     if (currentLevel < 30) {
       statusVal.textContent = "LEVEL COMPLETE!";
       gameStarted = false;
@@ -386,8 +377,8 @@ function update() {
     }
   }
 
-  // Fall into void (Reset level)
-  if (player.y > canvas.height + 120) {
+  // Fall void
+  if (player.y > canvas.height + 150) {
     statusVal.textContent = "FELL INTO THE VOID!";
     gameStarted = false;
     setTimeout(() => {
@@ -428,36 +419,41 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
 function drawCloud(c) {
   ctx.save();
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
-  ctx.fillStyle = '#ffffff';
-  
-  // Bouncy Cloud Pillow Shape
+  ctx.fillStyle = c.color;
+
+  // Base pill platform
   ctx.beginPath();
-  ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, 20);
+  ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, c.h / 2);
   ctx.fill();
+
+  // Draw randomized top fluff bumps
+  c.bumps.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.offsetX, b.offsetY, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#d0f0ff';
   ctx.stroke();
-
-  // Fluffy top bumps
-  ctx.beginPath();
-  ctx.arc(-c.w/4, -c.h/2, 16, 0, Math.PI * 2);
-  ctx.arc(c.w/4, -c.h/2, 18, 0, Math.PI * 2);
-  ctx.fill();
 
   ctx.restore();
 }
 
 function render() {
-  // Clear background
   ctx.fillStyle = '#71cbf4';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw Bouncy Clouds
   clouds.forEach(c => drawCloud(c));
 
   if (gameStarted || rope.attached) {
-    // Goal Star
-    drawStar(goalStar.x - cameraX, goalStar.y, 5, goalStar.size, goalStar.size / 2, '#ffbe0b');
+    // 40% Opaque Finish Line
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
 
     // Swing Stars
     stars.forEach(s => {
@@ -472,7 +468,7 @@ function render() {
       ctx.moveTo(player.x - cameraX, player.y);
       ctx.lineTo(rope.targetStar.x - cameraX, rope.targetStar.y);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.stroke();
     }
@@ -486,9 +482,9 @@ function render() {
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();
 
-    // Shine highlight
+    // Shine
     ctx.beginPath();
-    ctx.arc(player.x - cameraX - 5, player.y - 5, 5, 0, Math.PI * 2);
+    ctx.arc(player.x - cameraX - 6, player.y - 6, 6, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fill();
   }
