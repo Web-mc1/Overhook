@@ -39,10 +39,10 @@
       overflow: hidden;
     }
 
-    /* Ambient Floating Clouds for Menu */
+    /* Ambient Floating Clouds for Menu (No Outlines) */
     .menu-cloud {
       position: absolute;
-      background: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.6);
       border-radius: 50px;
       pointer-events: none;
       animation: floatCloud linear infinite;
@@ -50,7 +50,7 @@
     .menu-cloud::before, .menu-cloud::after {
       content: '';
       position: absolute;
-      background: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.6);
       border-radius: 50%;
     }
     .menu-cloud-1 { width: 180px; height: 50px; top: 15%; left: -200px; animation-duration: 22s; }
@@ -315,7 +315,6 @@ function formatTime(ms) {
   return `${mStr}:${sStr}.${cStr}`;
 }
 
-// Display Saved PB on Startup
 const savedBest = localStorage.getItem('overhook_best_time');
 if (savedBest) {
   bestScoreBox.textContent = `BEST TIME: ${formatTime(parseInt(savedBest))}`;
@@ -335,19 +334,21 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Reel In Controls
+// DIRECT REEL IN MECHANICS
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
     const dx = rope.targetStar.x - player.x;
     const dy = rope.targetStar.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > 15) {
-      const pullForce = 12.0;
+    if (dist > 10) {
+      // Direct pull vector toward star center
+      const pullForce = 15.0;
       player.vx += (dx / dist) * pullForce;
       player.vy += (dy / dist) * pullForce;
       
-      rope.length = Math.max(15, dist - 60);
+      // Instantly shorten the tether length
+      rope.length = Math.max(10, dist - 80);
       rope.targetLength = rope.length;
     }
 
@@ -735,6 +736,7 @@ function drawCloudTrails() {
   ctx.restore();
 }
 
+// BORDERLESS BOTTOM CLOUDS
 function drawBottomCloudOcean() {
   const baseY = canvas.height - 40;
   
@@ -834,6 +836,7 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   ctx.fill();
 }
 
+// BORDERLESS PLATFORM CLOUDS
 function drawCloud(c) {
   ctx.save();
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
@@ -847,10 +850,6 @@ function drawCloud(c) {
 
   ctx.fillStyle = c.color;
   ctx.fill(path);
-
-  ctx.lineWidth = 3.5;
-  ctx.strokeStyle = '#000000';
-  ctx.stroke(path);
 
   ctx.restore();
 }
