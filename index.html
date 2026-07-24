@@ -114,7 +114,8 @@
   </div>
 
   <div id="hud">
-    <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
+    <div class="pill">LVL: <span id="lvlVal">1</span>/30</div>
+    <div class="pill" style="color: #ffea00;">TIME: <span id="timerVal">00:00.00</span></div>
     <div class="pill" id="statusVal" style="color: #ffe853;">CLICK & HOLD TO HOOK!</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
@@ -199,11 +200,35 @@ const hud = document.getElementById('hud');
 const statusVal = document.getElementById('statusVal');
 const lvlVal = document.getElementById('lvlVal');
 const bounceVal = document.getElementById('bounceVal');
+const timerVal = document.getElementById('timerVal');
 
 let gameStarted = false;
 let currentLevel = 1;
 let cameraX = 0;
 let bounceCount = 0;
+
+// STOPWATCH VARIABLES
+let startTime = 0;
+let elapsedTime = 0;
+let timerRunning = false;
+let finalTimeFormatted = "";
+
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const centiseconds = Math.floor((ms % 1000) / 10);
+
+  const pad = (n) => (n < 10 ? '0' + n : n);
+  return `${pad(minutes)}:${pad(seconds)}.${pad(centiseconds)}`;
+}
+
+function updateStopwatch() {
+  if (timerRunning) {
+    elapsedTime = Date.now() - startTime;
+    timerVal.textContent = formatTime(elapsedTime);
+  }
+}
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -217,16 +242,13 @@ let releaseTimeout = null;
 
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
-    // Shorten the target rope length directly
     rope.targetLength = Math.max(20, rope.targetLength - 45);
 
-    // Vector toward star
     const dx = rope.targetStar.x - player.x;
     const dy = rope.targetStar.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 0) {
-      // Pull velocity inward
       const pullForce = 6.5;
       player.vx += (dx / dist) * pullForce;
       player.vy += (dy / dist) * pullForce;
@@ -281,6 +303,12 @@ startBtn.addEventListener('click', () => {
   titleScreen.style.display = 'none';
   hud.style.display = 'flex';
   gameStarted = true;
+
+  // Start Stopwatch
+  startTime = Date.now();
+  elapsedTime = 0;
+  timerRunning = true;
+
   initLevel(1);
 });
 
@@ -346,7 +374,6 @@ function initLevel(lvl) {
   birds = [];
   cloudTrails = [];
 
-  // Generate Swirling Cloud Trails in Background
   for (let t = 0; t < 6; t++) {
     cloudTrails.push({
       x: 100 + t * 650,
@@ -357,12 +384,10 @@ function initLevel(lvl) {
     });
   }
 
-  // Initial Birds
   for (let b = 0; b < 5; b++) {
     spawnBird();
   }
 
-  // Spawn Initial Cloud Platform
   clouds.push({
     x: spawnX,
     y: spawnY,
@@ -482,16 +507,16 @@ function releaseHook() {
 function update() {
   if (!gameStarted) return;
 
+  updateStopwatch();
+
   player.vy += 0.28;
 
-  // Star movement
   stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
     }
   });
 
-  // Spawn Birds periodically
   if (Date.now() - lastBirdSpawn > 3500) {
     if (birds.length < 10) {
       spawnBird();
@@ -499,7 +524,6 @@ function update() {
     lastBirdSpawn = Date.now();
   }
 
-  // Update Birds
   birds.forEach((b, idx) => {
     b.x += b.speed;
     b.wingAngle += b.flapSpeed;
@@ -509,7 +533,6 @@ function update() {
     }
   });
 
-  // Grapple Rope Mechanics with Smooth Reel-In
   if (rope.attached && rope.targetStar) {
     rope.length += (rope.targetLength - rope.length) * 0.18;
 
@@ -564,6 +587,7 @@ function update() {
 
   if (player.x + player.radius >= finishLine.x) {
     playWinSound();
+
     if (currentLevel < 30) {
       statusVal.textContent = "LEVEL COMPLETE!";
       gameStarted = false;
@@ -572,7 +596,22 @@ function update() {
         initLevel(currentLevel + 1);
       }, 900);
     } else {
-      statusVal.textContent = "YOU BEAT ALL 30 LEVELS!";
+      // BEAT LEVEL 30 - STOP & SAVE TIMER
+      timerRunning = false;
+      finalTimeFormatted = formatTime(elapsedTime);
+
+      // Save Best Time to LocalStorage
+      const storedBest = localStorage.getItem('overhook_best_time');
+      let isNewPB = false;
+      if (!storedBest || elapsedTime < parseInt(storedBest)) {
+        localStorage.setItem('overhook_best_time', elapsedTime);
+        isNewPB = true;
+      }
+
+      statusVal.textContent = isNewPB 
+        ? `NEW RECORD! WIN TIME: ${finalTimeFormatted}`
+        : `YOU WIN! TIME: ${finalTimeFormatted}`;
+
       gameStarted = false;
     }
   }
@@ -717,7 +756,6 @@ function drawCloud(c) {
   ctx.save();
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
 
-  // Using Path2D merges all cloud geometry into a single clean shape without interior outlines
   const path = new Path2D();
   path.roundRect(-c.w / 2, -c.h / 2, c.w, c.h, c.h / 2);
   c.bumps.forEach(b => {
