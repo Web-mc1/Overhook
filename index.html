@@ -210,11 +210,11 @@ function initLevel(lvl) {
   let lastX = 250;
 
   for (let i = 0; i < starCount; i++) {
-    const spacing = 220 + Math.random() * 120 + (currentLevel * 10);
+    // Space stars far enough apart that you can't just bounce from cloud to cloud
+    const spacing = 280 + Math.random() * 120 + (currentLevel * 8);
     const starX = lastX + spacing;
-    const starY = (canvas.height * 0.25) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.22);
+    const starY = (canvas.height * 0.25) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.2);
     
-    // Slowed down moving speed significantly
     const isMoving = currentLevel > 3 && (Math.random() < 0.45);
     const moveSpeed = isMoving ? 0.0015 + (Math.random() * 0.001) : 0;
     const moveRange = isMoving ? 35 + Math.random() * 45 : 0;
@@ -232,38 +232,51 @@ function initLevel(lvl) {
       offset: Math.random() * 100
     });
 
-    // Unique Randomized Cloud Generation
-    const cloudsPerStar = 1 + Math.floor(Math.random() * 2);
-    for (let c = 0; c < cloudsPerStar; c++) {
-      const w = 90 + Math.random() * 100;
-      const h = 30 + Math.random() * 20;
-      
-      // Generate random fluff circles for distinct cloud silhouettes
-      const bumps = [];
-      const bumpCount = 3 + Math.floor(Math.random() * 4);
-      for (let b = 0; b < bumpCount; b++) {
-        bumps.push({
-          offsetX: (Math.random() - 0.5) * (w * 0.7),
-          offsetY: -h / 2 + (Math.random() * -10),
-          radius: 12 + Math.random() * 14
-        });
+    // Only place clouds under CERTAIN stars (e.g. 50% chance) to create un-bounceable void gaps
+    if (Math.random() > 0.45) {
+      const w = 90 + Math.random() * 60;
+      const h = 30 + Math.random() * 15;
+      const cloudX = starX + (Math.random() * 40 - 20);
+      const cloudY = Math.min(canvas.height - 70, starY + 160 + Math.random() * 80);
+
+      // Check against existing clouds to strictly prevent overlapping
+      let overlaps = false;
+      for (let existing of clouds) {
+        const dx = Math.abs(existing.x - cloudX);
+        const dy = Math.abs(existing.y - cloudY);
+        if (dx < (existing.w / 2 + w / 2 + 40) && dy < (existing.h / 2 + h / 2 + 30)) {
+          overlaps = true;
+          break;
+        }
       }
 
-      clouds.push({
-        x: starX + (Math.random() * 180 - 90),
-        y: Math.min(canvas.height - 80, starY + 110 + Math.random() * 150),
-        w: w,
-        h: h,
-        bumps: bumps,
-        color: `hsl(${190 + Math.random() * 20}, ${80 + Math.random() * 20}%, ${95 + Math.random() * 5}%)`,
-        bounceSquish: 0
-      });
+      if (!overlaps) {
+        const bumps = [];
+        const bumpCount = 3 + Math.floor(Math.random() * 3);
+        for (let b = 0; b < bumpCount; b++) {
+          bumps.push({
+            offsetX: (Math.random() - 0.5) * (w * 0.7),
+            offsetY: -h / 2 + (Math.random() * -8),
+            radius: 10 + Math.random() * 12
+          });
+        }
+
+        clouds.push({
+          x: cloudX,
+          y: cloudY,
+          w: w,
+          h: h,
+          bumps: bumps,
+          color: `hsl(${190 + Math.random() * 20}, ${80 + Math.random() * 20}%, ${95 + Math.random() * 5}%)`,
+          bounceSquish: 0
+        });
+      }
     }
 
     lastX = starX;
   }
 
-  finishLine.x = lastX + 320;
+  finishLine.x = lastX + 350;
 }
 
 function attachHook() {
@@ -304,7 +317,7 @@ function update() {
   // Gravity
   player.vy += 0.38;
 
-  // Smooth & gentle star motion
+  // Smooth star motion
   stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
@@ -377,7 +390,7 @@ function update() {
     }
   }
 
-  // Fall void
+  // Fall void reset
   if (player.y > canvas.height + 150) {
     statusVal.textContent = "FELL INTO THE VOID!";
     gameStarted = false;
