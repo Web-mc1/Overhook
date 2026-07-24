@@ -334,21 +334,21 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// DIRECT REEL IN MECHANICS
+// ORIGINAL SNAPPY REEL-IN MECHANICS
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
     const dx = rope.targetStar.x - player.x;
     const dy = rope.targetStar.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > 10) {
-      // Direct pull vector toward star center
-      const pullForce = 15.0;
+    if (dist > 15) {
+      // Strong hard push towards star
+      const pullForce = 22.0;
       player.vx += (dx / dist) * pullForce;
       player.vy += (dy / dist) * pullForce;
       
-      // Instantly shorten the tether length
-      rope.length = Math.max(10, dist - 80);
+      // Instantly chop rope distance
+      rope.length = Math.max(10, dist - 120);
       rope.targetLength = rope.length;
     }
 
