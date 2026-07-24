@@ -112,7 +112,7 @@
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">HOLD LEFT-CLICK TO SWING & CLICK FAST TO REEL IN!</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN & BOOST YOUR SWING!</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -209,12 +209,38 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Reel In & Controls Logic
+// Reel In & Speed Boost Controls
 let releaseTimeout = null;
 
 function triggerReelIn() {
-  if (rope.attached && rope.length > 25) {
-    rope.length -= 28; // Reels in per click
+  if (rope.attached && rope.targetStar) {
+    // 1. Reel closer
+    if (rope.length > 25) {
+      rope.length -= 28;
+    }
+
+    // 2. Add swing force on every click!
+    const dx = player.x - rope.targetStar.x;
+    const dy = player.y - rope.targetStar.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 0) {
+      // Perpendicular direction to current rope angle
+      let perpX = -dy / dist;
+      let perpY = dx / dist;
+
+      // Match boost to current swing direction (or forward if stationary)
+      const currentDot = player.vx * perpX + player.vy * perpY;
+      if (currentDot < 0) {
+        perpX = -perpX;
+        perpY = -perpY;
+      }
+
+      // Add speed impulse each click
+      player.vx += perpX * 3.5;
+      player.vy += perpY * 3.5;
+    }
+
     playReelSound();
   }
 }
@@ -230,7 +256,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) { // Left Click
     mouse.isDown = true;
     
-    // Cancel any pending release timer so fast-clicking keeps you attached!
+    // Cancel pending release timer so rapid clicks keep you attached!
     clearTimeout(releaseTimeout);
 
     if (gameStarted) {
@@ -247,7 +273,7 @@ window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
     
-    // Delay release by 220ms so fast clicking (4-5 CPS) stays attached seamlessly
+    // Short grace delay so 4-5 CPS clicking stays attached seamlessly
     clearTimeout(releaseTimeout);
     releaseTimeout = setTimeout(() => {
       releaseHook();
