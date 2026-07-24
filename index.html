@@ -112,7 +112,7 @@
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN! STOP CLICKING TO LAUNCH</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">HOLD LEFT-CLICK TO SWING & CLICK FAST TO REEL IN!</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -209,7 +209,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Reel In & Fast-Click Timing
+// Reel In & Controls Logic
 let releaseTimeout = null;
 
 function triggerReelIn() {
@@ -219,15 +219,6 @@ function triggerReelIn() {
   }
 }
 
-function resetReleaseTimer() {
-  clearTimeout(releaseTimeout);
-  // Auto-releases hook if you stop clicking for 300ms
-  releaseTimeout = setTimeout(() => {
-    releaseHook();
-  }, 300);
-}
-
-// Mouse Controls
 const mouse = { x: 0, y: 0, isDown: false };
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
@@ -238,13 +229,16 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => {
   if (e.button === 0) { // Left Click
     mouse.isDown = true;
+    
+    // Cancel any pending release timer so fast-clicking keeps you attached!
+    clearTimeout(releaseTimeout);
+
     if (gameStarted) {
       if (!rope.attached) {
         attachHook();
       } else {
         triggerReelIn();
       }
-      resetReleaseTimer();
     }
   }
 });
@@ -252,6 +246,12 @@ canvas.addEventListener('mousedown', e => {
 window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
+    
+    // Delay release by 220ms so fast clicking (4-5 CPS) stays attached seamlessly
+    clearTimeout(releaseTimeout);
+    releaseTimeout = setTimeout(() => {
+      releaseHook();
+    }, 220);
   }
 });
 
