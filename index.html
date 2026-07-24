@@ -295,7 +295,7 @@ let gameStarted = false;
 let currentLevel = 1;
 let cameraX = 0;
 let bounceCount = 0;
-let cloudSpeedBoost = 1.0; // STACKABLE SPEED MULTIPLIER
+let cloudSpeedBoost = 1.0;
 let particles = [];
 
 // STOPWATCH VARIABLES
@@ -336,19 +336,30 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+// FIXED DIRECT REEL IN FUNCTION
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
     const dx = rope.targetStar.x - player.x;
     const dy = rope.targetStar.y - player.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const currentDist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > 15) {
-      const pullForce = 22.0 * Math.min(cloudSpeedBoost, 2.5);
-      player.vx += (dx / dist) * pullForce;
-      player.vy += (dy / dist) * pullForce;
+    if (currentDist > 20) {
+      const pullAmount = 70; // Distance pulled toward star per click
+      const newDist = Math.max(15, currentDist - pullAmount);
       
-      rope.length = Math.max(10, dist - 120);
-      rope.targetLength = rope.length;
+      const angle = Math.atan2(dy, dx);
+      
+      // Move player directly closer instantly
+      player.x = rope.targetStar.x - Math.cos(angle) * newDist;
+      player.y = rope.targetStar.y - Math.sin(angle) * newDist;
+      
+      // Shorten the rope constraint so physics doesn't snap player back
+      rope.length = newDist;
+
+      // Add inward velocity push
+      const speedBoost = 12.0 * Math.min(cloudSpeedBoost, 2.0);
+      player.vx += Math.cos(angle) * speedBoost;
+      player.vy += Math.sin(angle) * speedBoost;
     }
 
     playReelSound();
@@ -407,7 +418,6 @@ const rope = {
   attached: false,
   targetStar: null,
   length: 0,
-  targetLength: 0,
   maxLength: 580
 };
 
@@ -593,7 +603,6 @@ function attachHook() {
     const dx = player.x - closestStar.x;
     const dy = player.y - closestStar.y;
     rope.length = Math.sqrt(dx * dx + dy * dy);
-    rope.targetLength = rope.length;
     playHookSound();
   }
 }
@@ -636,7 +645,6 @@ function update() {
     }
   }
 
-  // Update particles
   for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
     const p = particles[pIdx];
     p.x += p.vx;
@@ -652,6 +660,7 @@ function update() {
     const dy = player.y - rope.targetStar.y;
     const currentDist = Math.sqrt(dx * dx + dy * dy);
 
+    // Keep player tethered inside rope.length
     if (currentDist > rope.length) {
       const angle = Math.atan2(dy, dx);
       player.x = rope.targetStar.x + Math.cos(angle) * rope.length;
@@ -672,7 +681,6 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  // CLOUD COLLISION & STACKING SPEED BOOST MECHANIC
   for (let i = 0; i < clouds.length; i++) {
     const c = clouds[i];
     if (
@@ -681,12 +689,10 @@ function update() {
       player.y + player.radius >= c.y - c.h / 2 &&
       player.y - player.radius <= c.y + c.h / 2
     ) {
-      // Stack multiplier increases with every bounce (15% speed increase per bounce)
       cloudSpeedBoost += 0.22;
       bounceCount++;
       bounceVal.textContent = bounceCount;
 
-      // Vertical bounce height scaled up by multiplier
       const baseBounceVelocity = 14.5;
       if (player.y > c.y && player.vy < 0) {
         player.vy = baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
@@ -694,7 +700,6 @@ function update() {
         player.vy = -baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
       }
 
-      // Horizontal push compound speed stack
       const pushDir = player.vx >= 0 ? 1 : -1;
       player.vx = (Math.abs(player.vx) + 3.5) * pushDir * Math.min(cloudSpeedBoost, 2.5);
 
@@ -775,7 +780,6 @@ function drawCloudTrails() {
   ctx.restore();
 }
 
-// BORDERLESS BOTTOM CLOUDS
 function drawBottomCloudOcean() {
   const baseY = canvas.height - 40;
   
@@ -875,7 +879,6 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   ctx.fill();
 }
 
-// BORDERLESS PLATFORM CLOUDS
 function drawCloud(c) {
   ctx.save();
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
@@ -925,7 +928,6 @@ function render() {
     drawFinishLine();
     for (let i = 0; i < clouds.length; i++) drawCloud(clouds[i]);
 
-    // Draw Particles
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       ctx.fillStyle = p.color;
