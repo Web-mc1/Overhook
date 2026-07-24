@@ -39,7 +39,7 @@
       overflow: hidden;
     }
 
-    /* Ambient Floating Clouds for Menu (No Outlines) */
+    /* Ambient Floating Clouds for Menu */
     .menu-cloud {
       position: absolute;
       background: rgba(255, 255, 255, 0.6);
@@ -217,8 +217,8 @@ function playBounceSound() {
   const gain = audioCtx.createGain();
   const now = audioCtx.currentTime;
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(160, now);
-  osc.frequency.exponentialRampToValueAtTime(450, now + 0.14);
+  osc.frequency.setValueAtTime(160 + (bounceCount * 20), now);
+  osc.frequency.exponentialRampToValueAtTime(450 + (bounceCount * 30), now + 0.14);
   gain.gain.setValueAtTime(0.3, now);
   gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
   osc.connect(gain);
@@ -295,6 +295,8 @@ let gameStarted = false;
 let currentLevel = 1;
 let cameraX = 0;
 let bounceCount = 0;
+let cloudSpeedBoost = 1.0; // STACKABLE SPEED MULTIPLIER
+let particles = [];
 
 // STOPWATCH VARIABLES
 let startTime = 0;
@@ -334,7 +336,6 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ORIGINAL SNAPPY REEL-IN MECHANICS
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
     const dx = rope.targetStar.x - player.x;
@@ -342,12 +343,10 @@ function triggerReelIn() {
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 15) {
-      // Strong hard push towards star
-      const pullForce = 22.0;
+      const pullForce = 22.0 * Math.min(cloudSpeedBoost, 2.5);
       player.vx += (dx / dist) * pullForce;
       player.vy += (dy / dist) * pullForce;
       
-      // Instantly chop rope distance
       rope.length = Math.max(10, dist - 120);
       rope.targetLength = rope.length;
     }
@@ -419,6 +418,21 @@ let cloudTrails = [];
 let lastBirdSpawn = 0;
 let finishLine = { x: 0, width: 90 };
 
+function createBounceParticles(x, y) {
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 12,
+      vy: (Math.random() - 0.5) * 8 - 4,
+      radius: 4 + Math.random() * 6,
+      life: 25,
+      maxLife: 25,
+      color: '#ffea00'
+    });
+  }
+}
+
 function spawnBird() {
   const direction = Math.random() < 0.5 ? 1 : -1;
   const startX = direction === 1 ? cameraX - 100 : cameraX + canvas.width + 100;
@@ -449,11 +463,15 @@ function initLevel(lvl) {
   player.vy = 0;
   cameraX = 0;
   rope.attached = false;
+  bounceCount = 0;
+  cloudSpeedBoost = 1.0;
+  bounceVal.textContent = bounceCount;
 
   stars = [];
   clouds = [];
   birds = [];
   cloudTrails = [];
+  particles = [];
 
   for (let t = 0; t < 6; t++) {
     cloudTrails.push({
@@ -618,6 +636,17 @@ function update() {
     }
   }
 
+  // Update particles
+  for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
+    const p = particles[pIdx];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) {
+      particles.splice(pIdx, 1);
+    }
+  }
+
   if (rope.attached && rope.targetStar) {
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
@@ -643,6 +672,7 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
+  // CLOUD COLLISION & STACKING SPEED BOOST MECHANIC
   for (let i = 0; i < clouds.length; i++) {
     const c = clouds[i];
     if (
@@ -651,16 +681,25 @@ function update() {
       player.y + player.radius >= c.y - c.h / 2 &&
       player.y - player.radius <= c.y + c.h / 2
     ) {
-      if (player.y > c.y && player.vy < 0) {
-        player.vy = 14.5;
-      } else {
-        player.vy = -14.5;
-      }
-
-      player.vx += player.vx >= 0 ? 2.5 : -2.5;
-      c.bounceSquish = 12;
+      // Stack multiplier increases with every bounce (15% speed increase per bounce)
+      cloudSpeedBoost += 0.22;
       bounceCount++;
       bounceVal.textContent = bounceCount;
+
+      // Vertical bounce height scaled up by multiplier
+      const baseBounceVelocity = 14.5;
+      if (player.y > c.y && player.vy < 0) {
+        player.vy = baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
+      } else {
+        player.vy = -baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
+      }
+
+      // Horizontal push compound speed stack
+      const pushDir = player.vx >= 0 ? 1 : -1;
+      player.vx = (Math.abs(player.vx) + 3.5) * pushDir * Math.min(cloudSpeedBoost, 2.5);
+
+      c.bounceSquish = 12;
+      createBounceParticles(player.x, player.y);
       playBounceSound();
     }
 
@@ -885,6 +924,17 @@ function render() {
   if (gameStarted || rope.attached) {
     drawFinishLine();
     for (let i = 0; i < clouds.length; i++) drawCloud(clouds[i]);
+
+    // Draw Particles
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life / p.maxLife;
+      ctx.beginPath();
+      ctx.arc(p.x - cameraX, p.y, p.radius, 0, TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
 
     for (let i = 0; i < stars.length; i++) {
       const s = stars[i];
