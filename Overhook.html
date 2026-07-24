@@ -100,6 +100,8 @@
 <body>
 
 <div id="game-container">
+  <audio id="bgMusic" src="HiLau - 1984 (freetouse.com).mp3" loop></audio>
+
   <div id="title-screen">
     <div class="title-box">
       <div class="title-text">Overhook</div>
@@ -118,8 +120,9 @@
 </div>
 
 <script>
-// WEB AUDIO API ENGINE SETUP
+// WEB AUDIO API ENGINE SETUP FOR SOUND EFFECTS
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const bgMusic = document.getElementById('bgMusic');
 
 function playBounceSound() {
   if (audioCtx.state !== 'running') return;
@@ -258,9 +261,15 @@ window.addEventListener('keydown', e => {
 window.addEventListener('contextmenu', e => e.preventDefault());
 
 startBtn.addEventListener('click', () => {
+  // Resume Web Audio Context for SFX
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
+
+  // Play Background Music Track (35% volume)
+  bgMusic.volume = 0.35;
+  bgMusic.play().catch(e => console.log("Music play blocked by browser:", e));
+
   titleScreen.style.display = 'none';
   hud.style.display = 'flex';
   gameStarted = true;
