@@ -217,8 +217,8 @@ let releaseTimeout = null;
 
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
-    if (rope.length > 20) {
-      rope.length -= 20;
+    if (rope.targetLength > 20) {
+      rope.targetLength = Math.max(20, rope.targetLength - 20);
     }
 
     const dx = player.x - rope.targetStar.x;
@@ -269,9 +269,10 @@ window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
     clearTimeout(releaseTimeout);
+    // Reduced release delay so the rope vanishes instantly
     releaseTimeout = setTimeout(() => {
       releaseHook();
-    }, 250);
+    }, 20);
   }
 });
 
@@ -306,6 +307,7 @@ const rope = {
   attached: false,
   targetStar: null,
   length: 0,
+  targetLength: 0,
   maxLength: 580
 };
 
@@ -328,7 +330,7 @@ function spawnBird() {
     wingAngle: Math.random() * Math.PI,
     size: 16 + Math.random() * 10,
     flapSpeed: 0.15 + Math.random() * 0.1,
-    type: Math.floor(Math.random() * 3) // 3 bird color variations
+    type: Math.floor(Math.random() * 3)
   });
 }
 
@@ -474,6 +476,7 @@ function attachHook() {
     const dx = player.x - closestStar.x;
     const dy = player.y - closestStar.y;
     rope.length = Math.sqrt(dx * dx + dy * dy);
+    rope.targetLength = rope.length;
     playHookSound();
   }
 }
@@ -514,8 +517,10 @@ function update() {
     }
   });
 
-  // Grapple Rope Mechanics
+  // Grapple Rope Mechanics with Smooth Reel-In
   if (rope.attached && rope.targetStar) {
+    rope.length += (rope.targetLength - rope.length) * 0.2; // Smooth transition
+
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
     const currentDist = Math.sqrt(dx * dx + dy * dy);
@@ -673,7 +678,7 @@ function drawCloudTrails() {
   ctx.lineCap = 'round';
 
   cloudTrails.forEach(t => {
-    const renderX = t.x - cameraX * 0.3; // Parallax motion
+    const renderX = t.x - cameraX * 0.3;
     ctx.beginPath();
     ctx.ellipse(renderX, t.y, t.radiusX, t.radiusY, t.rotation, 0, Math.PI * 1.8);
     ctx.stroke();
@@ -683,10 +688,8 @@ function drawCloudTrails() {
 }
 
 function drawBottomCloudOcean() {
-  // Layered fluffy cloud horizon along the bottom
   const baseY = canvas.height - 40;
   
-  // Far back layer
   ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
   for (let x = -100; x < canvas.width + 200; x += 110) {
     const px = x - (cameraX * 0.15) % 110;
@@ -695,7 +698,6 @@ function drawBottomCloudOcean() {
     ctx.fill();
   }
 
-  // Front foreground cloud ocean layer
   ctx.fillStyle = '#ffffff';
   for (let x = -100; x < canvas.width + 200; x += 90) {
     const px = x - (cameraX * 0.3) % 90;
@@ -715,11 +717,9 @@ function drawBird(b) {
 
   const wingY = Math.sin(b.wingAngle) * b.size * 0.7;
 
-  // Colors based on bird type
   const bodyColors = ['#ffffff', '#7a8288', '#a87343'];
   const wingColors = ['#2c3e50', '#4a5157', '#5c3a1e'];
 
-  // Body
   ctx.fillStyle = bodyColors[b.type];
   ctx.beginPath();
   ctx.ellipse(0, 0, b.size, b.size * 0.55, 0, 0, Math.PI * 2);
@@ -728,7 +728,6 @@ function drawBird(b) {
   ctx.strokeStyle = '#000000';
   ctx.stroke();
 
-  // Wings
   ctx.fillStyle = wingColors[b.type];
   ctx.beginPath();
   ctx.moveTo(-b.size * 0.3, 0);
@@ -737,13 +736,11 @@ function drawBird(b) {
   ctx.fill();
   ctx.stroke();
 
-  // Eye
   ctx.fillStyle = '#000000';
   ctx.beginPath();
   ctx.arc(b.size * 0.5, -b.size * 0.1, 2, 0, Math.PI * 2);
   ctx.fill();
 
-  // Beak
   ctx.fillStyle = '#ffaa00';
   ctx.beginPath();
   ctx.moveTo(b.size * 0.8, -2);
@@ -762,7 +759,6 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   let y = cy;
   let step = Math.PI / spikes;
 
-  // Glow halo
   ctx.beginPath();
   ctx.arc(cx, cy, outerRadius * 1.5, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255, 234, 0, 0.25)';
@@ -795,16 +791,13 @@ function drawCloud(c) {
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
   ctx.fillStyle = c.color;
 
-  // Main body
+  // Single unified path for the cloud body and bumps
   ctx.beginPath();
   ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, c.h / 2);
-  ctx.fill();
-
   c.bumps.forEach(b => {
-    ctx.beginPath();
     ctx.arc(b.offsetX, b.offsetY, b.radius, 0, Math.PI * 2);
-    ctx.fill();
   });
+  ctx.fill();
 
   ctx.lineWidth = 3.5;
   ctx.strokeStyle = '#000000';
@@ -817,11 +810,9 @@ function drawFinishLine() {
   const fx = finishLine.x - cameraX;
   const fw = finishLine.width;
 
-  // Glowing white beam
   ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.fillRect(fx, -500, fw, canvas.height + 1000);
 
-  // Checkered pattern overlay inside finish beam
   const tileSize = 22;
   ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
   for (let y = 0; y < canvas.height; y += tileSize) {
@@ -832,44 +823,28 @@ function drawFinishLine() {
     }
   }
 
-  // Border lines
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 6;
   ctx.strokeRect(fx, -500, fw, canvas.height + 1000);
 }
 
 function render() {
-  // 1. Sky Gradient
   drawSkyGradient();
-
-  // 2. Swirling Cloud Trails
   drawCloudTrails();
-
-  // 3. Smiling Pixel Sun
   drawSun();
-
-  // 4. Flying Birds
   birds.forEach(b => drawBird(b));
-
-  // 5. Cloud Ocean (Bottom)
   drawBottomCloudOcean();
 
-  // 6. Gameplay Elements
   if (gameStarted || rope.attached) {
-    // Finish Line
     drawFinishLine();
-
-    // Bouncing Cloud Platforms
     clouds.forEach(c => drawCloud(c));
 
-    // Swing Stars
     stars.forEach(s => {
       s.pulse += 0.05;
       const pulseRadius = s.size + Math.sin(s.pulse) * 2;
       drawStar(s.x - cameraX, s.y, 5, pulseRadius, pulseRadius / 2, '#ffea00');
     });
 
-    // Grapple rope
     if (rope.attached && rope.targetStar) {
       ctx.beginPath();
       ctx.moveTo(player.x - cameraX, player.y);
@@ -884,7 +859,6 @@ function render() {
       ctx.stroke();
     }
 
-    // Red Player Ball
     ctx.beginPath();
     ctx.arc(player.x - cameraX, player.y, player.radius, 0, Math.PI * 2);
     ctx.fillStyle = player.color;
@@ -893,7 +867,6 @@ function render() {
     ctx.strokeStyle = '#000000';
     ctx.stroke();
 
-    // Eyes on Player
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(player.x - cameraX - 4, player.y - 4, 6, 0, Math.PI * 2);
