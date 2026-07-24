@@ -217,26 +217,19 @@ let releaseTimeout = null;
 
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
-    if (rope.targetLength > 20) {
-      rope.targetLength = Math.max(20, rope.targetLength - 20);
-    }
+    // Shorten the target rope length directly
+    rope.targetLength = Math.max(20, rope.targetLength - 45);
 
-    const dx = player.x - rope.targetStar.x;
-    const dy = player.y - rope.targetStar.y;
+    // Vector toward star
+    const dx = rope.targetStar.x - player.x;
+    const dy = rope.targetStar.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 0) {
-      let perpX = -dy / dist;
-      let perpY = dx / dist;
-
-      const currentDot = player.vx * perpX + player.vy * perpY;
-      if (currentDot < 0) {
-        perpX = -perpX;
-        perpY = -perpY;
-      }
-
-      player.vx += perpX * 3.8;
-      player.vy += perpY * 3.8;
+      // Pull velocity inward
+      const pullForce = 6.5;
+      player.vx += (dx / dist) * pullForce;
+      player.vy += (dy / dist) * pullForce;
     }
 
     playReelSound();
@@ -269,7 +262,6 @@ window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
     clearTimeout(releaseTimeout);
-    // Reduced release delay so the rope vanishes instantly
     releaseTimeout = setTimeout(() => {
       releaseHook();
     }, 20);
@@ -370,16 +362,16 @@ function initLevel(lvl) {
     spawnBird();
   }
 
-  // Spawn Cloud
+  // Spawn Initial Cloud Platform
   clouds.push({
     x: spawnX,
     y: spawnY,
     w: 170,
     h: 38,
     bumps: [
-      { offsetX: -40, offsetY: -20, radius: 18 },
-      { offsetX: 0, offsetY: -24, radius: 22 },
-      { offsetX: 40, offsetY: -20, radius: 18 }
+      { offsetX: -40, offsetY: -16, radius: 20 },
+      { offsetX: 0, offsetY: -22, radius: 24 },
+      { offsetX: 40, offsetY: -16, radius: 20 }
     ],
     color: '#ffffff',
     bounceSquish: 0
@@ -432,8 +424,8 @@ function initLevel(lvl) {
         for (let b = 0; b < bumpCount; b++) {
           bumps.push({
             offsetX: (Math.random() - 0.5) * (w * 0.7),
-            offsetY: -h / 2 + (Math.random() * -8),
-            radius: 10 + Math.random() * 12
+            offsetY: -h / 2 + (Math.random() * -6),
+            radius: 12 + Math.random() * 10
           });
         }
 
@@ -519,7 +511,7 @@ function update() {
 
   // Grapple Rope Mechanics with Smooth Reel-In
   if (rope.attached && rope.targetStar) {
-    rope.length += (rope.targetLength - rope.length) * 0.2; // Smooth transition
+    rope.length += (rope.targetLength - rope.length) * 0.18;
 
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
@@ -604,71 +596,6 @@ function drawSkyGradient() {
   gradient.addColorStop(1, '#66a2e8');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawSun() {
-  const sunX = canvas.width * 0.58;
-  const sunY = canvas.height * 0.22;
-  const time = Date.now() * 0.0015;
-
-  ctx.save();
-  ctx.translate(sunX, sunY);
-
-  // Soft Radial Sun Glow
-  const glow = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
-  glow.addColorStop(0, 'rgba(255, 235, 120, 0.6)');
-  glow.addColorStop(1, 'rgba(255, 235, 120, 0)');
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(0, 0, 150, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Rotating Pixel Rays
-  ctx.fillStyle = '#ffea55';
-  const rayCount = 12;
-  for (let i = 0; i < rayCount; i++) {
-    const angle = (i * Math.PI * 2 / rayCount) + (time * 0.15);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.moveTo(55, -12);
-    ctx.lineTo(85, 0);
-    ctx.lineTo(55, 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.rotate(-angle);
-  }
-
-  // Sun Circle Body
-  ctx.beginPath();
-  ctx.arc(0, 0, 56, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffcc00';
-  ctx.fill();
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = '#ffffff';
-  ctx.stroke();
-
-  // Face - Eyes
-  ctx.fillStyle = '#222222';
-  ctx.beginPath();
-  ctx.arc(-16, -6, 6, 0, Math.PI * 2);
-  ctx.arc(16, -6, 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Face - Happy Smile
-  ctx.beginPath();
-  ctx.arc(0, 6, 20, 0.1 * Math.PI, 0.9 * Math.PI);
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = '#222222';
-  ctx.stroke();
-
-  // Cheeks
-  ctx.fillStyle = 'rgba(255, 120, 120, 0.5)';
-  ctx.beginPath();
-  ctx.arc(-22, 8, 8, 0, Math.PI * 2);
-  ctx.arc(22, 8, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
 }
 
 function drawCloudTrails() {
@@ -789,19 +716,20 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
 function drawCloud(c) {
   ctx.save();
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
-  ctx.fillStyle = c.color;
 
-  // Single unified path for the cloud body and bumps
-  ctx.beginPath();
-  ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, c.h / 2);
+  // Using Path2D merges all cloud geometry into a single clean shape without interior outlines
+  const path = new Path2D();
+  path.roundRect(-c.w / 2, -c.h / 2, c.w, c.h, c.h / 2);
   c.bumps.forEach(b => {
-    ctx.arc(b.offsetX, b.offsetY, b.radius, 0, Math.PI * 2);
+    path.arc(b.offsetX, b.offsetY, b.radius, 0, Math.PI * 2);
   });
-  ctx.fill();
+
+  ctx.fillStyle = c.color;
+  ctx.fill(path);
 
   ctx.lineWidth = 3.5;
   ctx.strokeStyle = '#000000';
-  ctx.stroke();
+  ctx.stroke(path);
 
   ctx.restore();
 }
@@ -831,7 +759,6 @@ function drawFinishLine() {
 function render() {
   drawSkyGradient();
   drawCloudTrails();
-  drawSun();
   birds.forEach(b => drawBird(b));
   drawBottomCloudOcean();
 
