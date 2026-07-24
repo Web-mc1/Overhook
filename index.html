@@ -110,7 +110,7 @@
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN!</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">HOLD LEFT CLICK & PRESS SPACE TO REEL IN</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -206,7 +206,15 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Mouse state
+// Reel In Trigger
+function triggerReelIn() {
+  if (rope.attached && rope.length > 25) {
+    rope.length -= 35;
+    playReelSound();
+  }
+}
+
+// Mouse Controls
 const mouse = { x: 0, y: 0, isDown: false };
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
@@ -215,19 +223,13 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 0) {
+  if (e.button === 0) { // Left click
     mouse.isDown = true;
-    if (gameStarted) {
-      if (!rope.attached) {
-        attachHook();
-      } else {
-        // Fast click reels player in efficiently
-        if (rope.length > 30) {
-          rope.length -= 30; // Increased reel strength for easy fast clicking
-          playReelSound();
-        }
-      }
+    if (gameStarted && !rope.attached) {
+      attachHook();
     }
+  } else if (e.button === 2) { // Right click reels in
+    if (gameStarted) triggerReelIn();
   }
 });
 
@@ -237,6 +239,23 @@ window.addEventListener('mouseup', e => {
     releaseHook();
   }
 });
+
+// Mouse Wheel Reel In
+window.addEventListener('wheel', e => {
+  if (gameStarted) {
+    triggerReelIn();
+  }
+});
+
+// Keyboard Reel In (Spacebar or Up Arrow)
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    if (gameStarted) triggerReelIn();
+  }
+});
+
+// Disable Context Menu on Right Click
+window.addEventListener('contextmenu', e => e.preventDefault());
 
 startBtn.addEventListener('click', () => {
   if (audioCtx.state === 'suspended') {
@@ -450,11 +469,10 @@ function update() {
       player.y + player.radius >= c.y - c.h / 2 &&
       player.y - player.radius <= c.y + c.h / 2
     ) {
-      // Hitting bottom of cloud vs top/sides
       if (player.y > c.y && player.vy < 0) {
-        player.vy = 13.5; // Bounce downward
+        player.vy = 13.5;
       } else {
-        player.vy = -13.5; // Bounce upward
+        player.vy = -13.5;
       }
 
       player.vx += player.vx >= 0 ? 2.0 : -2.0;
