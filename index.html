@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Overhook - Web Edition</title>
+  <title>Overhook - Pixel Sky Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #71cbf4;
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #00b4ff;
+      font-family: 'Courier New', Courier, monospace, sans-serif;
       user-select: none;
     }
     #game-container {
@@ -29,7 +29,7 @@
     #title-screen {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(113, 203, 244, 0.95);
+      background: rgba(0, 180, 255, 0.95);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -42,27 +42,28 @@
     .title-text {
       font-size: 72px;
       font-weight: 900;
-      text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+      text-shadow: 5px 5px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000;
       line-height: 1.1;
+      letter-spacing: 2px;
     }
     .author-text {
-      font-size: 38px;
+      font-size: 32px;
       font-weight: 800;
       color: #ffffff;
       display: block;
       margin-top: 10px;
-      text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+      text-shadow: 3px 3px 0 #000;
     }
     .start-btn {
       align-self: flex-end;
-      background: #ffffff;
-      color: #3baee0;
+      background: #ffea00;
+      color: #000000;
       font-size: 32px;
       font-weight: 900;
       padding: 18px 42px;
-      border-radius: 16px;
-      border: 4px solid #ffffff;
-      box-shadow: 0 8px 0 #2a8cb9, 0 10px 20px rgba(0,0,0,0.3);
+      border-radius: 12px;
+      border: 4px solid #000000;
+      box-shadow: 0 8px 0 #000000;
       cursor: pointer;
       transition: transform 0.1s;
     }
@@ -71,10 +72,10 @@
     }
     .start-btn:active {
       transform: translateY(4px);
-      box-shadow: 0 2px 0 #2a8cb9;
+      box-shadow: 0 2px 0 #000000;
     }
 
-    /* HUD */
+    /* Pixel Art HUD */
     #hud {
       position: absolute;
       top: 20px;
@@ -83,17 +84,19 @@
       display: none;
       justify-content: space-between;
       pointer-events: none;
-      font-weight: 800;
-      font-size: 22px;
+      font-weight: 900;
+      font-size: 20px;
       color: #fff;
-      text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
       z-index: 5;
     }
     .pill {
-      background: rgba(0,0,0,0.35);
-      padding: 10px 22px;
-      border-radius: 30px;
-      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(0,0,0,0.8);
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 0 #000;
+      text-shadow: 2px 2px 0 #000;
+      letter-spacing: 1px;
     }
   </style>
 </head>
@@ -104,15 +107,15 @@
 
   <div id="title-screen">
     <div class="title-box">
-      <div class="title-text">Overhook</div>
+      <div class="title-text">OVERHOOK</div>
       <span class="author-text">by FryedCheese</span>
     </div>
-    <button class="start-btn" id="startBtn">Press to start</button>
+    <button class="start-btn" id="startBtn">PRESS TO START</button>
   </div>
 
   <div id="hud">
     <div class="pill">LEVEL: <span id="lvlVal">1</span> / 30</div>
-    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK FAST TO REEL IN & BOOST YOUR SWING!</div>
+    <div class="pill" id="statusVal" style="color: #ffe853;">CLICK & HOLD TO HOOK!</div>
     <div class="pill">BOUNCES: <span id="bounceVal">0</span></div>
   </div>
 
@@ -120,7 +123,7 @@
 </div>
 
 <script>
-// WEB AUDIO API ENGINE SETUP FOR SOUND EFFECTS
+// WEB AUDIO API ENGINE SETUP
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const bgMusic = document.getElementById('bgMusic');
 
@@ -209,7 +212,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Reel In & Speed Boost Controls
+// Reel In Controls
 let releaseTimeout = null;
 
 function triggerReelIn() {
@@ -294,8 +297,8 @@ const player = {
   y: 300,
   vx: 0,
   vy: 0,
-  radius: 20,
-  color: '#ff4b5c'
+  radius: 22,
+  color: '#ff3b30'
 };
 
 // Grapple Rope
@@ -309,21 +312,23 @@ const rope = {
 let stars = [];
 let clouds = [];
 let birds = [];
+let cloudTrails = [];
 let lastBirdSpawn = 0;
-let finishLine = { x: 0, width: 45 };
+let finishLine = { x: 0, width: 90 };
 
 function spawnBird() {
   const direction = Math.random() < 0.5 ? 1 : -1;
   const startX = direction === 1 ? cameraX - 100 : cameraX + canvas.width + 100;
-  const startY = 80 + Math.random() * (canvas.height * 0.35);
+  const startY = 60 + Math.random() * (canvas.height * 0.4);
 
   birds.push({
     x: startX,
     y: startY,
     speed: (2 + Math.random() * 2.5) * direction,
-    wingAngle: 0,
-    size: 14 + Math.random() * 8,
-    flapSpeed: 0.12 + Math.random() * 0.08
+    wingAngle: Math.random() * Math.PI,
+    size: 16 + Math.random() * 10,
+    flapSpeed: 0.15 + Math.random() * 0.1,
+    type: Math.floor(Math.random() * 3) // 3 bird color variations
   });
 }
 
@@ -345,9 +350,21 @@ function initLevel(lvl) {
   stars = [];
   clouds = [];
   birds = [];
+  cloudTrails = [];
+
+  // Generate Swirling Cloud Trails in Background
+  for (let t = 0; t < 6; t++) {
+    cloudTrails.push({
+      x: 100 + t * 650,
+      y: 120 + (t % 3) * 120,
+      radiusX: 180 + Math.random() * 100,
+      radiusY: 40 + Math.random() * 30,
+      rotation: (Math.random() - 0.5) * 0.3
+    });
+  }
 
   // Initial Birds
-  for (let b = 0; b < 3; b++) {
+  for (let b = 0; b < 5; b++) {
     spawnBird();
   }
 
@@ -355,12 +372,12 @@ function initLevel(lvl) {
   clouds.push({
     x: spawnX,
     y: spawnY,
-    w: 160,
-    h: 35,
+    w: 170,
+    h: 38,
     bumps: [
-      { offsetX: -30, offsetY: -18, radius: 14 },
-      { offsetX: 0, offsetY: -20, radius: 16 },
-      { offsetX: 30, offsetY: -18, radius: 14 }
+      { offsetX: -40, offsetY: -20, radius: 18 },
+      { offsetX: 0, offsetY: -24, radius: 22 },
+      { offsetX: 40, offsetY: -20, radius: 18 }
     ],
     color: '#ffffff',
     bounceSquish: 0
@@ -395,7 +412,7 @@ function initLevel(lvl) {
       const w = 110 + Math.random() * 60;
       const h = 32 + Math.random() * 15;
       const cloudX = starX + (Math.random() * 40 - 20);
-      const cloudY = Math.min(canvas.height - 60, starY + 150 + Math.random() * 70);
+      const cloudY = Math.min(canvas.height - 80, starY + 150 + Math.random() * 70);
 
       let overlaps = false;
       for (let existing of clouds) {
@@ -424,7 +441,7 @@ function initLevel(lvl) {
           w: w,
           h: h,
           bumps: bumps,
-          color: `hsl(${190 + Math.random() * 20}, ${80 + Math.random() * 20}%, ${95 + Math.random() * 5}%)`,
+          color: '#ffffff',
           bounceSquish: 0
         });
       }
@@ -480,8 +497,8 @@ function update() {
   });
 
   // Spawn Birds periodically
-  if (Date.now() - lastBirdSpawn > 4500) {
-    if (birds.length < 8) {
+  if (Date.now() - lastBirdSpawn > 3500) {
+    if (birds.length < 10) {
       spawnBird();
     }
     lastBirdSpawn = Date.now();
@@ -492,8 +509,7 @@ function update() {
     b.x += b.speed;
     b.wingAngle += b.flapSpeed;
 
-    // Despawn if far off camera
-    if (b.x < cameraX - 200 || b.x > cameraX + canvas.width + 200) {
+    if (b.x < cameraX - 250 || b.x > cameraX + canvas.width + 250) {
       birds.splice(idx, 1);
     }
   });
@@ -574,56 +590,119 @@ function update() {
   }
 }
 
+// DRAWING FUNCTIONS FOR PIXEL BACKGROUND
+function drawSkyGradient() {
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, '#00b4ff');
+  gradient.addColorStop(0.5, '#5cd3ff');
+  gradient.addColorStop(0.85, '#d4f4ff');
+  gradient.addColorStop(1, '#66a2e8');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 function drawSun() {
-  const sunX = canvas.width * 0.65;
-  const sunY = canvas.height * 0.18;
-  const time = Date.now() * 0.002;
+  const sunX = canvas.width * 0.58;
+  const sunY = canvas.height * 0.22;
+  const time = Date.now() * 0.0015;
 
   ctx.save();
   ctx.translate(sunX, sunY);
 
-  // Outer Rays
-  ctx.fillStyle = '#ffde59';
+  // Soft Radial Sun Glow
+  const glow = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
+  glow.addColorStop(0, 'rgba(255, 235, 120, 0.6)');
+  glow.addColorStop(1, 'rgba(255, 235, 120, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, 150, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rotating Pixel Rays
+  ctx.fillStyle = '#ffea55';
   const rayCount = 12;
   for (let i = 0; i < rayCount; i++) {
-    const angle = (i * Math.PI * 2 / rayCount) + (time * 0.2);
-    ctx.beginPath();
+    const angle = (i * Math.PI * 2 / rayCount) + (time * 0.15);
     ctx.rotate(angle);
-    ctx.fillRect(45, -6, 20, 12);
+    ctx.beginPath();
+    ctx.moveTo(55, -12);
+    ctx.lineTo(85, 0);
+    ctx.lineTo(55, 12);
+    ctx.closePath();
+    ctx.fill();
     ctx.rotate(-angle);
   }
 
   // Sun Circle Body
   ctx.beginPath();
-  ctx.arc(0, 0, 48, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffbd59';
+  ctx.arc(0, 0, 56, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcc00';
   ctx.fill();
   ctx.lineWidth = 5;
   ctx.strokeStyle = '#ffffff';
   ctx.stroke();
 
   // Face - Eyes
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = '#222222';
   ctx.beginPath();
-  ctx.arc(-14, -6, 5, 0, Math.PI * 2);
-  ctx.arc(14, -6, 5, 0, Math.PI * 2);
+  ctx.arc(-16, -6, 6, 0, Math.PI * 2);
+  ctx.arc(16, -6, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  // Face - Smile
+  // Face - Happy Smile
   ctx.beginPath();
-  ctx.arc(0, 4, 18, 0.1 * Math.PI, 0.9 * Math.PI);
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = '#000000';
+  ctx.arc(0, 6, 20, 0.1 * Math.PI, 0.9 * Math.PI);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = '#222222';
   ctx.stroke();
 
   // Cheeks
-  ctx.fillStyle = 'rgba(255, 100, 100, 0.4)';
+  ctx.fillStyle = 'rgba(255, 120, 120, 0.5)';
   ctx.beginPath();
-  ctx.arc(-20, 6, 7, 0, Math.PI * 2);
-  ctx.arc(20, 6, 7, 0, Math.PI * 2);
+  ctx.arc(-22, 8, 8, 0, Math.PI * 2);
+  ctx.arc(22, 8, 8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
+}
+
+function drawCloudTrails() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+
+  cloudTrails.forEach(t => {
+    const renderX = t.x - cameraX * 0.3; // Parallax motion
+    ctx.beginPath();
+    ctx.ellipse(renderX, t.y, t.radiusX, t.radiusY, t.rotation, 0, Math.PI * 1.8);
+    ctx.stroke();
+  });
+
+  ctx.restore();
+}
+
+function drawBottomCloudOcean() {
+  // Layered fluffy cloud horizon along the bottom
+  const baseY = canvas.height - 40;
+  
+  // Far back layer
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  for (let x = -100; x < canvas.width + 200; x += 110) {
+    const px = x - (cameraX * 0.15) % 110;
+    ctx.beginPath();
+    ctx.arc(px, baseY - 40, 75, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Front foreground cloud ocean layer
+  ctx.fillStyle = '#ffffff';
+  for (let x = -100; x < canvas.width + 200; x += 90) {
+    const px = x - (cameraX * 0.3) % 90;
+    ctx.beginPath();
+    ctx.arc(px, baseY, 65, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawBird(b) {
@@ -634,32 +713,45 @@ function drawBird(b) {
     ctx.scale(-1, 1);
   }
 
-  const wingY = Math.sin(b.wingAngle) * b.size * 0.8;
+  const wingY = Math.sin(b.wingAngle) * b.size * 0.7;
+
+  // Colors based on bird type
+  const bodyColors = ['#ffffff', '#7a8288', '#a87343'];
+  const wingColors = ['#2c3e50', '#4a5157', '#5c3a1e'];
 
   // Body
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = bodyColors[b.type];
   ctx.beginPath();
-  ctx.ellipse(0, 0, b.size, b.size * 0.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, b.size, b.size * 0.55, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = '#2c3e50';
+  ctx.strokeStyle = '#000000';
   ctx.stroke();
 
   // Wings
+  ctx.fillStyle = wingColors[b.type];
   ctx.beginPath();
   ctx.moveTo(-b.size * 0.3, 0);
-  ctx.quadraticCurveTo(0, -b.size + wingY, b.size * 0.6, -b.size * 0.2);
-  ctx.strokeStyle = '#2c3e50';
-  ctx.lineWidth = 3;
+  ctx.quadraticCurveTo(0, -b.size + wingY, b.size * 0.7, -b.size * 0.2);
+  ctx.quadraticCurveTo(0, wingY * 0.5, -b.size * 0.3, 0);
+  ctx.fill();
   ctx.stroke();
 
-  // Beak
-  ctx.fillStyle = '#ffa500';
+  // Eye
+  ctx.fillStyle = '#000000';
   ctx.beginPath();
-  ctx.moveTo(b.size, -2);
-  ctx.lineTo(b.size + 8, 1);
-  ctx.lineTo(b.size, 4);
+  ctx.arc(b.size * 0.5, -b.size * 0.1, 2, 0, Math.PI * 2);
   ctx.fill();
+
+  // Beak
+  ctx.fillStyle = '#ffaa00';
+  ctx.beginPath();
+  ctx.moveTo(b.size * 0.8, -2);
+  ctx.lineTo(b.size * 0.8 + 8, 1);
+  ctx.lineTo(b.size * 0.8, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 
   ctx.restore();
 }
@@ -669,6 +761,12 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   let x = cx;
   let y = cy;
   let step = Math.PI / spikes;
+
+  // Glow halo
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerRadius * 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 234, 0, 0.25)';
+  ctx.fill();
 
   ctx.beginPath();
   ctx.moveTo(cx, cy - outerRadius);
@@ -686,7 +784,7 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   ctx.lineTo(cx, cy - outerRadius);
   ctx.closePath();
   ctx.lineWidth = 4;
-  ctx.strokeStyle = '#ffffff';
+  ctx.strokeStyle = '#000000';
   ctx.stroke();
   ctx.fillStyle = color;
   ctx.fill();
@@ -697,6 +795,7 @@ function drawCloud(c) {
   ctx.translate(c.x - cameraX, c.y + c.bounceSquish);
   ctx.fillStyle = c.color;
 
+  // Main body
   ctx.beginPath();
   ctx.roundRect(-c.w/2, -c.h/2, c.w, c.h, c.h / 2);
   ctx.fill();
@@ -707,35 +806,61 @@ function drawCloud(c) {
     ctx.fill();
   });
 
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = '#d0f0ff';
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = '#000000';
   ctx.stroke();
 
   ctx.restore();
 }
 
-function render() {
-  // Sky Background
-  ctx.fillStyle = '#71cbf4';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+function drawFinishLine() {
+  const fx = finishLine.x - cameraX;
+  const fw = finishLine.width;
 
-  // Background Sun
+  // Glowing white beam
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.fillRect(fx, -500, fw, canvas.height + 1000);
+
+  // Checkered pattern overlay inside finish beam
+  const tileSize = 22;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  for (let y = 0; y < canvas.height; y += tileSize) {
+    for (let x = 0; x < fw; x += tileSize) {
+      if ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0) {
+        ctx.fillRect(fx + x, y, tileSize, tileSize);
+      }
+    }
+  }
+
+  // Border lines
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(fx, -500, fw, canvas.height + 1000);
+}
+
+function render() {
+  // 1. Sky Gradient
+  drawSkyGradient();
+
+  // 2. Swirling Cloud Trails
+  drawCloudTrails();
+
+  // 3. Smiling Pixel Sun
   drawSun();
 
-  // Background Birds
+  // 4. Flying Birds
   birds.forEach(b => drawBird(b));
 
-  // Clouds
-  clouds.forEach(c => drawCloud(c));
+  // 5. Cloud Ocean (Bottom)
+  drawBottomCloudOcean();
 
+  // 6. Gameplay Elements
   if (gameStarted || rope.attached) {
     // Finish Line
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.fillRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
+    drawFinishLine();
+
+    // Bouncing Cloud Platforms
+    clouds.forEach(c => drawCloud(c));
 
     // Swing Stars
     stars.forEach(s => {
@@ -750,8 +875,12 @@ function render() {
       ctx.moveTo(player.x - cameraX, player.y);
       ctx.lineTo(rope.targetStar.x - cameraX, rope.targetStar.y);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 7;
       ctx.lineCap = 'round';
+      ctx.stroke();
+
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
 
@@ -761,13 +890,20 @@ function render() {
     ctx.fillStyle = player.color;
     ctx.fill();
     ctx.lineWidth = 4;
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
     ctx.stroke();
 
-    // Player Shine
+    // Eyes on Player
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(player.x - cameraX - 6, player.y - 6, 6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.arc(player.x - cameraX - 4, player.y - 4, 6, 0, Math.PI * 2);
+    ctx.arc(player.x - cameraX + 6, player.y - 4, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(player.x - cameraX - 2, player.y - 4, 3, 0, Math.PI * 2);
+    ctx.arc(player.x - cameraX + 8, player.y - 4, 3, 0, Math.PI * 2);
     ctx.fill();
   }
 }
