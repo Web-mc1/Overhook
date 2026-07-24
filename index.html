@@ -118,6 +118,72 @@
 </div>
 
 <script>
+// WEB AUDIO API ENGINE SETUP
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playBounceSound() {
+  if (audioCtx.state !== 'running') return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.14);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.14);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.14);
+}
+
+function playHookSound() {
+  if (audioCtx.state !== 'running') return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(750, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.09);
+  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.09);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.09);
+}
+
+function playReelSound() {
+  if (audioCtx.state !== 'running') return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.05);
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.05);
+}
+
+function playWinSound() {
+  if (audioCtx.state !== 'running') return;
+  const notes = [300, 400, 500, 700];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.08 + 0.12);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + i * 0.08);
+    osc.stop(audioCtx.currentTime + i * 0.08 + 0.12);
+  });
+}
+
+// GAME CODE
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -155,9 +221,10 @@ canvas.addEventListener('mousedown', e => {
       if (!rope.attached) {
         attachHook();
       } else {
-        // Fast-clicking reels player closer to the star!
-        if (rope.length > 35) {
-          rope.length -= 18;
+        // Fast click reels player in efficiently
+        if (rope.length > 30) {
+          rope.length -= 30; // Increased reel strength for easy fast clicking
+          playReelSound();
         }
       }
     }
@@ -172,6 +239,9 @@ window.addEventListener('mouseup', e => {
 });
 
 startBtn.addEventListener('click', () => {
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   titleScreen.style.display = 'none';
   hud.style.display = 'flex';
   gameStarted = true;
@@ -209,7 +279,7 @@ function initLevel(lvl) {
   const spawnY = canvas.height * 0.5;
 
   player.x = spawnX;
-  player.y = spawnY - 30; // Spawn resting slightly above the start cloud
+  player.y = spawnY - 30;
   player.vx = 0;
   player.vy = 0;
   cameraX = 0;
@@ -218,7 +288,7 @@ function initLevel(lvl) {
   stars = [];
   clouds = [];
 
-  // Guaranteed Spawn Cloud
+  // Spawn Cloud
   clouds.push({
     x: spawnX,
     y: spawnY,
@@ -304,9 +374,6 @@ function initLevel(lvl) {
 }
 
 function attachHook() {
-  const worldMouseX = mouse.x + cameraX;
-  const worldMouseY = mouse.y;
-
   let closestStar = null;
   let minDist = rope.maxLength;
 
@@ -327,6 +394,7 @@ function attachHook() {
     const dx = player.x - closestStar.x;
     const dy = player.y - closestStar.y;
     rope.length = Math.sqrt(dx * dx + dy * dy);
+    playHookSound();
   }
 }
 
@@ -341,14 +409,14 @@ function update() {
   // Gravity
   player.vy += 0.38;
 
-  // Smooth star motion
+  // Star movement
   stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
     }
   });
 
-  // Grapple constraint (Manual reel-in mode via clicking)
+  // Grapple mechanics
   if (rope.attached && rope.targetStar) {
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
@@ -374,20 +442,26 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  // Cloud bouncing
+  // Cloud bouncing - TOP, BOTTOM, AND SIDES!
   clouds.forEach(c => {
     if (
-      player.x + player.radius > c.x - c.w/2 &&
-      player.x - player.radius < c.x + c.w/2 &&
-      player.y + player.radius >= c.y - c.h/2 &&
-      player.y - player.radius <= c.y + c.h/2 &&
-      player.vy > 0
+      player.x + player.radius > c.x - c.w / 2 &&
+      player.x - player.radius < c.x + c.w / 2 &&
+      player.y + player.radius >= c.y - c.h / 2 &&
+      player.y - player.radius <= c.y + c.h / 2
     ) {
-      player.vy = -13.5;
-      player.vx += 2.0;
+      // Hitting bottom of cloud vs top/sides
+      if (player.y > c.y && player.vy < 0) {
+        player.vy = 13.5; // Bounce downward
+      } else {
+        player.vy = -13.5; // Bounce upward
+      }
+
+      player.vx += player.vx >= 0 ? 2.0 : -2.0;
       c.bounceSquish = 12;
       bounceCount++;
       bounceVal.textContent = bounceCount;
+      playBounceSound();
     }
 
     if (c.bounceSquish > 0) c.bounceSquish -= 1;
@@ -397,6 +471,7 @@ function update() {
 
   // Win condition
   if (player.x + player.radius >= finishLine.x) {
+    playWinSound();
     if (currentLevel < 30) {
       statusVal.textContent = "LEVEL COMPLETE!";
       gameStarted = false;
