@@ -214,12 +214,10 @@ let releaseTimeout = null;
 
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
-    // 1. Reel closer by 20 pixels per click
     if (rope.length > 20) {
       rope.length -= 20;
     }
 
-    // 2. Add swing force on every click!
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -250,9 +248,8 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 0) { // Left Click
+  if (e.button === 0) {
     mouse.isDown = true;
-    
     clearTimeout(releaseTimeout);
 
     if (gameStarted) {
@@ -268,7 +265,6 @@ canvas.addEventListener('mousedown', e => {
 window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
-    
     clearTimeout(releaseTimeout);
     releaseTimeout = setTimeout(() => {
       releaseHook();
@@ -276,7 +272,6 @@ window.addEventListener('mouseup', e => {
   }
 });
 
-// Prevent Context Menu
 window.addEventListener('contextmenu', e => e.preventDefault());
 
 startBtn.addEventListener('click', () => {
@@ -313,7 +308,24 @@ const rope = {
 
 let stars = [];
 let clouds = [];
+let birds = [];
+let lastBirdSpawn = 0;
 let finishLine = { x: 0, width: 45 };
+
+function spawnBird() {
+  const direction = Math.random() < 0.5 ? 1 : -1;
+  const startX = direction === 1 ? cameraX - 100 : cameraX + canvas.width + 100;
+  const startY = 80 + Math.random() * (canvas.height * 0.35);
+
+  birds.push({
+    x: startX,
+    y: startY,
+    speed: (2 + Math.random() * 2.5) * direction,
+    wingAngle: 0,
+    size: 14 + Math.random() * 8,
+    flapSpeed: 0.12 + Math.random() * 0.08
+  });
+}
 
 function initLevel(lvl) {
   currentLevel = Math.min(Math.max(1, lvl), 30);
@@ -332,6 +344,12 @@ function initLevel(lvl) {
 
   stars = [];
   clouds = [];
+  birds = [];
+
+  // Initial Birds
+  for (let b = 0; b < 3; b++) {
+    spawnBird();
+  }
 
   // Spawn Cloud
   clouds.push({
@@ -454,12 +472,33 @@ function update() {
 
   player.vy += 0.28;
 
+  // Star movement
   stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
     }
   });
 
+  // Spawn Birds periodically
+  if (Date.now() - lastBirdSpawn > 4500) {
+    if (birds.length < 8) {
+      spawnBird();
+    }
+    lastBirdSpawn = Date.now();
+  }
+
+  // Update Birds
+  birds.forEach((b, idx) => {
+    b.x += b.speed;
+    b.wingAngle += b.flapSpeed;
+
+    // Despawn if far off camera
+    if (b.x < cameraX - 200 || b.x > cameraX + canvas.width + 200) {
+      birds.splice(idx, 1);
+    }
+  });
+
+  // Grapple Rope Mechanics
   if (rope.attached && rope.targetStar) {
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
@@ -535,6 +574,96 @@ function update() {
   }
 }
 
+function drawSun() {
+  const sunX = canvas.width * 0.65;
+  const sunY = canvas.height * 0.18;
+  const time = Date.now() * 0.002;
+
+  ctx.save();
+  ctx.translate(sunX, sunY);
+
+  // Outer Rays
+  ctx.fillStyle = '#ffde59';
+  const rayCount = 12;
+  for (let i = 0; i < rayCount; i++) {
+    const angle = (i * Math.PI * 2 / rayCount) + (time * 0.2);
+    ctx.beginPath();
+    ctx.rotate(angle);
+    ctx.fillRect(45, -6, 20, 12);
+    ctx.rotate(-angle);
+  }
+
+  // Sun Circle Body
+  ctx.beginPath();
+  ctx.arc(0, 0, 48, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffbd59';
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  // Face - Eyes
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(-14, -6, 5, 0, Math.PI * 2);
+  ctx.arc(14, -6, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Face - Smile
+  ctx.beginPath();
+  ctx.arc(0, 4, 18, 0.1 * Math.PI, 0.9 * Math.PI);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#000000';
+  ctx.stroke();
+
+  // Cheeks
+  ctx.fillStyle = 'rgba(255, 100, 100, 0.4)';
+  ctx.beginPath();
+  ctx.arc(-20, 6, 7, 0, Math.PI * 2);
+  ctx.arc(20, 6, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBird(b) {
+  ctx.save();
+  ctx.translate(b.x - cameraX, b.y);
+  
+  if (b.speed < 0) {
+    ctx.scale(-1, 1);
+  }
+
+  const wingY = Math.sin(b.wingAngle) * b.size * 0.8;
+
+  // Body
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, b.size, b.size * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#2c3e50';
+  ctx.stroke();
+
+  // Wings
+  ctx.beginPath();
+  ctx.moveTo(-b.size * 0.3, 0);
+  ctx.quadraticCurveTo(0, -b.size + wingY, b.size * 0.6, -b.size * 0.2);
+  ctx.strokeStyle = '#2c3e50';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Beak
+  ctx.fillStyle = '#ffa500';
+  ctx.beginPath();
+  ctx.moveTo(b.size, -2);
+  ctx.lineTo(b.size + 8, 1);
+  ctx.lineTo(b.size, 4);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   let rot = Math.PI / 2 * 3;
   let x = cx;
@@ -586,12 +715,21 @@ function drawCloud(c) {
 }
 
 function render() {
+  // Sky Background
   ctx.fillStyle = '#71cbf4';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // Background Sun
+  drawSun();
+
+  // Background Birds
+  birds.forEach(b => drawBird(b));
+
+  // Clouds
   clouds.forEach(c => drawCloud(c));
 
   if (gameStarted || rope.attached) {
+    // Finish Line
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
     
@@ -599,12 +737,14 @@ function render() {
     ctx.lineWidth = 4;
     ctx.strokeRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
 
+    // Swing Stars
     stars.forEach(s => {
       s.pulse += 0.05;
       const pulseRadius = s.size + Math.sin(s.pulse) * 2;
       drawStar(s.x - cameraX, s.y, 5, pulseRadius, pulseRadius / 2, '#ffea00');
     });
 
+    // Grapple rope
     if (rope.attached && rope.targetStar) {
       ctx.beginPath();
       ctx.moveTo(player.x - cameraX, player.y);
@@ -615,6 +755,7 @@ function render() {
       ctx.stroke();
     }
 
+    // Red Player Ball
     ctx.beginPath();
     ctx.arc(player.x - cameraX, player.y, player.radius, 0, Math.PI * 2);
     ctx.fillStyle = player.color;
@@ -623,6 +764,7 @@ function render() {
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();
 
+    // Player Shine
     ctx.beginPath();
     ctx.arc(player.x - cameraX - 6, player.y - 6, 6, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
