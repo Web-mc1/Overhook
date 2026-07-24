@@ -214,9 +214,9 @@ let releaseTimeout = null;
 
 function triggerReelIn() {
   if (rope.attached && rope.targetStar) {
-    // 1. Reel closer
-    if (rope.length > 25) {
-      rope.length -= 28;
+    // 1. Reel closer by 20 pixels per click
+    if (rope.length > 20) {
+      rope.length -= 20;
     }
 
     // 2. Add swing force on every click!
@@ -225,20 +225,17 @@ function triggerReelIn() {
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 0) {
-      // Perpendicular direction to current rope angle
       let perpX = -dy / dist;
       let perpY = dx / dist;
 
-      // Match boost to current swing direction (or forward if stationary)
       const currentDot = player.vx * perpX + player.vy * perpY;
       if (currentDot < 0) {
         perpX = -perpX;
         perpY = -perpY;
       }
 
-      // Add speed impulse each click
-      player.vx += perpX * 3.5;
-      player.vy += perpY * 3.5;
+      player.vx += perpX * 3.8;
+      player.vy += perpY * 3.8;
     }
 
     playReelSound();
@@ -256,7 +253,6 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) { // Left Click
     mouse.isDown = true;
     
-    // Cancel pending release timer so rapid clicks keep you attached!
     clearTimeout(releaseTimeout);
 
     if (gameStarted) {
@@ -273,11 +269,10 @@ window.addEventListener('mouseup', e => {
   if (e.button === 0) {
     mouse.isDown = false;
     
-    // Short grace delay so 4-5 CPS clicking stays attached seamlessly
     clearTimeout(releaseTimeout);
     releaseTimeout = setTimeout(() => {
       releaseHook();
-    }, 220);
+    }, 250);
   }
 });
 
@@ -313,7 +308,7 @@ const rope = {
   attached: false,
   targetStar: null,
   length: 0,
-  maxLength: 450
+  maxLength: 580
 };
 
 let stars = [];
@@ -342,7 +337,7 @@ function initLevel(lvl) {
   clouds.push({
     x: spawnX,
     y: spawnY,
-    w: 140,
+    w: 160,
     h: 35,
     bumps: [
       { offsetX: -30, offsetY: -18, radius: 14 },
@@ -353,24 +348,24 @@ function initLevel(lvl) {
     bounceSquish: 0
   });
 
-  const starCount = 12 + currentLevel * 3;
+  const starCount = 10 + currentLevel * 2;
   let lastX = 280;
 
   for (let i = 0; i < starCount; i++) {
-    const spacing = 280 + Math.random() * 120 + (currentLevel * 8);
+    const spacing = 240 + Math.random() * 100 + (currentLevel * 5);
     const starX = lastX + spacing;
-    const starY = (canvas.height * 0.25) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.2);
+    const starY = (canvas.height * 0.28) + Math.sin(i * 0.7 + currentLevel) * (canvas.height * 0.18);
     
-    const isMoving = currentLevel > 3 && (Math.random() < 0.45);
-    const moveSpeed = isMoving ? 0.0015 + (Math.random() * 0.001) : 0;
-    const moveRange = isMoving ? 35 + Math.random() * 45 : 0;
+    const isMoving = currentLevel > 5 && (Math.random() < 0.35);
+    const moveSpeed = isMoving ? 0.0012 + (Math.random() * 0.001) : 0;
+    const moveRange = isMoving ? 25 + Math.random() * 35 : 0;
 
     stars.push({
       baseX: starX,
       baseY: starY,
       x: starX,
       y: starY,
-      size: Math.max(18, 26 - Math.floor(currentLevel * 0.25)),
+      size: Math.max(22, 30 - Math.floor(currentLevel * 0.2)),
       pulse: Math.random() * Math.PI * 2,
       isMoving: isMoving,
       moveSpeed: moveSpeed,
@@ -378,11 +373,11 @@ function initLevel(lvl) {
       offset: Math.random() * 100
     });
 
-    if (Math.random() > 0.45) {
-      const w = 90 + Math.random() * 60;
-      const h = 30 + Math.random() * 15;
+    if (Math.random() > 0.35) {
+      const w = 110 + Math.random() * 60;
+      const h = 32 + Math.random() * 15;
       const cloudX = starX + (Math.random() * 40 - 20);
-      const cloudY = Math.min(canvas.height - 70, starY + 160 + Math.random() * 80);
+      const cloudY = Math.min(canvas.height - 60, starY + 150 + Math.random() * 70);
 
       let overlaps = false;
       for (let existing of clouds) {
@@ -420,7 +415,7 @@ function initLevel(lvl) {
     lastX = starX;
   }
 
-  finishLine.x = lastX + 350;
+  finishLine.x = lastX + 300;
 }
 
 function attachHook() {
@@ -457,17 +452,14 @@ function releaseHook() {
 function update() {
   if (!gameStarted) return;
 
-  // Gravity
-  player.vy += 0.38;
+  player.vy += 0.28;
 
-  // Star movement
   stars.forEach(s => {
     if (s.isMoving) {
       s.y = s.baseY + Math.sin(Date.now() * s.moveSpeed + s.offset) * s.moveRange;
     }
   });
 
-  // Grapple mechanics
   if (rope.attached && rope.targetStar) {
     const dx = player.x - rope.targetStar.x;
     const dy = player.y - rope.targetStar.y;
@@ -487,13 +479,12 @@ function update() {
     }
   }
 
-  player.vx *= 0.996;
-  player.vy *= 0.996;
+  player.vx *= 0.997;
+  player.vy *= 0.997;
 
   player.x += player.vx;
   player.y += player.vy;
 
-  // Cloud bouncing - TOP, BOTTOM, AND SIDES
   clouds.forEach(c => {
     if (
       player.x + player.radius > c.x - c.w / 2 &&
@@ -502,12 +493,12 @@ function update() {
       player.y - player.radius <= c.y + c.h / 2
     ) {
       if (player.y > c.y && player.vy < 0) {
-        player.vy = 13.5;
+        player.vy = 14.5;
       } else {
-        player.vy = -13.5;
+        player.vy = -14.5;
       }
 
-      player.vx += player.vx >= 0 ? 2.0 : -2.0;
+      player.vx += player.vx >= 0 ? 2.5 : -2.5;
       c.bounceSquish = 12;
       bounceCount++;
       bounceVal.textContent = bounceCount;
@@ -519,7 +510,6 @@ function update() {
 
   cameraX += (player.x - canvas.width * 0.25 - cameraX) * 0.08;
 
-  // Win condition
   if (player.x + player.radius >= finishLine.x) {
     playWinSound();
     if (currentLevel < 30) {
@@ -535,8 +525,7 @@ function update() {
     }
   }
 
-  // Fall void reset
-  if (player.y > canvas.height + 150) {
+  if (player.y > canvas.height + 250) {
     statusVal.textContent = "FELL INTO THE VOID!";
     gameStarted = false;
     setTimeout(() => {
@@ -603,7 +592,6 @@ function render() {
   clouds.forEach(c => drawCloud(c));
 
   if (gameStarted || rope.attached) {
-    // Finish Line
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
     
@@ -611,14 +599,12 @@ function render() {
     ctx.lineWidth = 4;
     ctx.strokeRect(finishLine.x - cameraX, -500, finishLine.width, canvas.height + 1000);
 
-    // Swing Stars
     stars.forEach(s => {
       s.pulse += 0.05;
       const pulseRadius = s.size + Math.sin(s.pulse) * 2;
       drawStar(s.x - cameraX, s.y, 5, pulseRadius, pulseRadius / 2, '#ffea00');
     });
 
-    // Grapple rope
     if (rope.attached && rope.targetStar) {
       ctx.beginPath();
       ctx.moveTo(player.x - cameraX, player.y);
@@ -629,7 +615,6 @@ function render() {
       ctx.stroke();
     }
 
-    // Red Player Ball
     ctx.beginPath();
     ctx.arc(player.x - cameraX, player.y, player.radius, 0, Math.PI * 2);
     ctx.fillStyle = player.color;
@@ -638,7 +623,6 @@ function render() {
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();
 
-    // Shine
     ctx.beginPath();
     ctx.arc(player.x - cameraX - 6, player.y - 6, 6, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
