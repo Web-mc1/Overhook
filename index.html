@@ -357,7 +357,7 @@ function triggerReelIn() {
       rope.length = newDist;
 
       // Add inward velocity push
-      const speedBoost = 12.0 * Math.min(cloudSpeedBoost, 2.0);
+      const speedBoost = 12.0 * Math.min(cloudSpeedBoost, 1.3);
       player.vx += Math.cos(angle) * speedBoost;
       player.vy += Math.sin(angle) * speedBoost;
     }
@@ -417,8 +417,7 @@ const player = {
 const rope = {
   attached: false,
   targetStar: null,
-  length: 0,
-  maxLength: 580
+  length: 0
 };
 
 let stars = [];
@@ -533,7 +532,8 @@ function initLevel(lvl) {
       isMoving: isMoving,
       moveSpeed: moveSpeed,
       moveRange: moveRange,
-      offset: Math.random() * 100
+      offset: Math.random() * 100,
+      maxRopeLength: 320 + Math.random() * 300 // Unique maximum rope reach per star
     });
 
     if (Math.random() > 0.35) {
@@ -583,7 +583,7 @@ function initLevel(lvl) {
 
 function attachHook() {
   let closestStar = null;
-  let minDist = rope.maxLength;
+  let minDist = Infinity;
 
   for (let i = 0; i < stars.length; i++) {
     const s = stars[i];
@@ -591,7 +591,7 @@ function attachHook() {
     const dy = s.y - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < minDist) {
+    if (dist <= s.maxRopeLength && dist < minDist) {
       minDist = dist;
       closestStar = s;
     }
@@ -600,9 +600,7 @@ function attachHook() {
   if (closestStar) {
     rope.attached = true;
     rope.targetStar = closestStar;
-    const dx = player.x - closestStar.x;
-    const dy = player.y - closestStar.y;
-    rope.length = Math.sqrt(dx * dx + dy * dy);
+    rope.length = minDist;
     playHookSound();
   }
 }
@@ -689,19 +687,21 @@ function update() {
       player.y + player.radius >= c.y - c.h / 2 &&
       player.y - player.radius <= c.y + c.h / 2
     ) {
-      cloudSpeedBoost += 0.22;
+      cloudSpeedBoost += 0.04;
       bounceCount++;
       bounceVal.textContent = bounceCount;
 
-      const baseBounceVelocity = 14.5;
+      // REDUCED BOUNCE FORCE (down from 14.5 to 9.0)
+      const baseBounceVelocity = 9.0;
       if (player.y > c.y && player.vy < 0) {
-        player.vy = baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
+        player.vy = baseBounceVelocity * Math.min(cloudSpeedBoost, 1.3);
       } else {
-        player.vy = -baseBounceVelocity * Math.min(cloudSpeedBoost, 2.2);
+        player.vy = -baseBounceVelocity * Math.min(cloudSpeedBoost, 1.3);
       }
 
+      // REDUCED HORIZONTAL PUSH
       const pushDir = player.vx >= 0 ? 1 : -1;
-      player.vx = (Math.abs(player.vx) + 3.5) * pushDir * Math.min(cloudSpeedBoost, 2.5);
+      player.vx = (Math.abs(player.vx) + 1.2) * pushDir * Math.min(cloudSpeedBoost, 1.3);
 
       c.bounceSquish = 12;
       createBounceParticles(player.x, player.y);
@@ -846,11 +846,18 @@ function drawBird(b) {
   ctx.restore();
 }
 
-function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+function drawStar(cx, cy, spikes, outerRadius, innerRadius, color, maxReach) {
   let rot = HALF_PI * 3;
   let x = cx;
   let y = cy;
   let step = Math.PI / spikes;
+
+  // Visual indicator for star's grapple range limit
+  ctx.beginPath();
+  ctx.arc(cx, cy, maxReach, 0, TWO_PI);
+  ctx.strokeStyle = 'rgba(255, 234, 0, 0.08)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   ctx.beginPath();
   ctx.arc(cx, cy, outerRadius * 1.5, 0, TWO_PI);
@@ -942,7 +949,7 @@ function render() {
       const s = stars[i];
       s.pulse += 0.05;
       const pulseRadius = s.size + Math.sin(s.pulse) * 2;
-      drawStar(s.x - cameraX, s.y, 5, pulseRadius, pulseRadius / 2, '#ffea00');
+      drawStar(s.x - cameraX, s.y, 5, pulseRadius, pulseRadius / 2, '#ffea00', s.maxRopeLength);
     }
 
     if (rope.attached && rope.targetStar) {
