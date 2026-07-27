@@ -156,21 +156,34 @@
 
 <script>
 (function(){
-  // Synth Audio System
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function playTone(freq, type, duration, vol=0.15) {
-    if (audioCtx.state !== 'running') return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const now = audioCtx.currentTime;
-    osc.type = type; osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(now); osc.stop(now + duration);
+  // Audio System
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
   }
 
-  // Upgrades Data
+  function playTone(freq, type, duration, vol=0.15) {
+    try {
+      const ctx = getAudioCtx();
+      if (ctx.state !== 'running') return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      osc.type = type; osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + duration);
+    } catch(e) {}
+  }
+
+  // Persistent Upgrades Data
   let embers = parseInt(localStorage.getItem('oh_embers') || '0');
   const upgrades = {
     range: parseInt(localStorage.getItem('oh_upg_range') || '0'),
@@ -246,17 +259,23 @@
 
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-  // Game Engine State
+  // Global Engine State & Safe Initializations
   let state = 'start';
-  let player, camera, clouds, collectibles, grapple;
-  let pointer = {x:0, y:0, down:false};
+  let clouds = [];
+  let collectibles = [];
+  let grapple = { active: false, cloud: null, length: 0 };
+  let player = { x: 100, y: H * 0.4, vx: 6, vy: -1.5, r: 16, pulseScale: 1, isDashing: 0 };
+  let camera = { x: 0, y: 0 };
+  let pointer = { x: 0, y: 0, down: false };
   let score = 0, dashMeter = 0, hasShield = false;
   let furthestSpawnX = 0, centerY = 0, lastClickTime = 0, shake = 0;
 
   function initGame() {
+    getAudioCtx(); // Ensure audio unlocks on user action
     player = { x: 100, y: H * 0.4, vx: 6, vy: -1.5, r: 16, pulseScale: 1, isDashing: 0 };
     camera = { x: player.x - W * 0.3, y: player.y - H * 0.4 };
-    clouds = []; collectibles = [];
+    clouds = []; 
+    collectibles = [];
     grapple = { active: false, cloud: null, length: 0 };
     score = 0; dashMeter = 0;
     hasShield = upgrades.shield > 0;
@@ -318,7 +337,7 @@
   }
 
   function onDown(e) {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    getAudioCtx();
     if (e.button === 2) { triggerSonicDash(); return; }
     pointer.x = e.clientX; pointer.y = e.clientY; pointer.down = true;
 
@@ -353,7 +372,7 @@
   }
 
   window.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointerup', () => { pointer.down = false; grapple.active = false; });
+  window.addEventListener('pointerup', () => { pointer.down = false; if (grapple) grapple.active = false; });
   window.addEventListener('contextmenu', e => e.preventDefault());
   window.addEventListener('keydown', e => {
     if (e.code === 'Space') { e.preventDefault(); onDown({ clientX: W/2, clientY: H/2, button: 0 }); }
@@ -367,7 +386,7 @@
       player.isDashing -= nDt;
       player.vy = 0;
     } else {
-      player.vy += 0.42 * nDt; // Smooth gravity
+      player.vy += 0.42 * nDt;
       player.vx *= Math.pow(0.998, nDt);
     }
 
@@ -376,8 +395,8 @@
 
     if (player.pulseScale > 1) player.pulseScale -= 0.04 * nDt;
 
-    // Grapple Constraint
-    if (grapple.active && grapple.cloud) {
+    // Grapple Physics
+    if (grapple && grapple.active && grapple.cloud) {
       const c = grapple.cloud;
       const dx = player.x - c.x, dy = player.y - c.y;
       const dist = Math.hypot(dx, dy) || 1;
@@ -439,39 +458,41 @@
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
     // Draw Clouds / Grapple Eyes
-    for (const c of clouds) {
-      const sx = c.x - camera.x, sy = c.y - camera.y;
-      if (sx < -100 || sx > W + 100) continue;
+    if (clouds && clouds.length) {
+      for (const c of clouds) {
+        const sx = c.x - camera.x, sy = c.y - camera.y;
+        if (sx < -100 || sx > W + 100) continue;
 
-      ctx.save();
-      if (c.type === 'boost') {
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 15;
-      } else if (c.type === 'hazard') {
-        ctx.fillStyle = '#ff0055';
-        ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 15;
-      } else {
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 10;
+        ctx.save();
+        if (c.type === 'boost') {
+          ctx.fillStyle = '#00f0ff';
+          ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 15;
+        } else if (c.type === 'hazard') {
+          ctx.fillStyle = '#ff0055';
+          ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 15;
+        } else {
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 10;
+        }
+
+        // Draw Cloud Body
+        ctx.beginPath();
+        ctx.arc(sx, sy, c.r, 0, Math.PI * 2);
+        ctx.arc(sx - 14, sy + 4, c.r * 0.6, 0, Math.PI * 2);
+        ctx.arc(sx + 14, sy + 4, c.r * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye Core
+        ctx.fillStyle = '#000000';
+        ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = c.type === 'hazard' ? '#ff0055' : (c.type === 'boost' ? '#00f0ff' : '#ffcc00');
+        ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
-
-      // Draw Cloud Body
-      ctx.beginPath();
-      ctx.arc(sx, sy, c.r, 0, Math.PI * 2);
-      ctx.arc(sx - 14, sy + 4, c.r * 0.6, 0, Math.PI * 2);
-      ctx.arc(sx + 14, sy + 4, c.r * 0.6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eye Core
-      ctx.fillStyle = '#000000';
-      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = c.type === 'hazard' ? '#ff0055' : (c.type === 'boost' ? '#00f0ff' : '#ffcc00');
-      ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
     }
 
     // Draw Tendril / Grapple Rope
-    if (grapple.active && grapple.cloud) {
+    if (grapple && grapple.active && grapple.cloud) {
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 3.5;
       ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 12;
@@ -483,13 +504,15 @@
     }
 
     // Draw Gold Embers
-    for (const item of collectibles) {
-      if (item.collected) continue;
-      const sx = item.x - camera.x, sy = item.y - camera.y;
-      ctx.fillStyle = '#ffcc00';
-      ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
+    if (collectibles && collectibles.length) {
+      for (const item of collectibles) {
+        if (item.collected) continue;
+        const sx = item.x - camera.x, sy = item.y - camera.y;
+        ctx.fillStyle = '#ffcc00';
+        ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
 
     // Draw Player Orb
