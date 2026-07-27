@@ -60,8 +60,18 @@
     100% { transform: rotate(-1deg) translateY(-4px); text-shadow: 4px 4px 0 #000, 0 0 25px #ff003c; }
   }
 
+  .author{
+    margin: 6px 0 0;
+    color: var(--rope);
+    font-size: clamp(14px, 2.8vw, 18px);
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(255, 0, 60, 0.7);
+  }
+
   .tagline{
-    margin:10px 0 26px;
+    margin:8px 0 24px;
     color:var(--ink-dim);
     font-size:clamp(13px,2.4vw,16px);
     letter-spacing:1px;
@@ -138,10 +148,11 @@
 
 <div id="startScreen" class="overlay">
   <h1 class="title">OVERHOOK</h1>
+  <div class="author">Made by FryedCheese</div>
   <p class="tagline">NIGHTMARE SKY EDITION</p>
   <ul class="rules">
+    <li><span class="dot"></span> Click rapidly to surge forward with speed boosts</li>
     <li><span class="dot"></span> Hold near an eye entity to extend your tendril</li>
-    <li><span class="dot"></span> Release at peak momentum to leap through the fog</li>
     <li><span class="dot"></span> Escape the crimson void before it claims you</li>
   </ul>
   <button class="btn" id="playBtn">ENTER THE VOID</button>
@@ -173,6 +184,22 @@
     gain.connect(audioCtx.destination);
     osc.start(now);
     osc.stop(now + 0.15);
+  }
+
+  function playBoostSound() {
+    if (audioCtx.state !== 'running') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const now = audioCtx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
   }
 
   function playDeathSound() {
@@ -212,7 +239,6 @@
   window.addEventListener('resize', resize);
 
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  const lerp = (a,b,t)=>a+(b-a)*t;
 
   // ---------- constants ----------
   const GRAVITY = 0.62;
@@ -236,6 +262,7 @@
   let centerY = 0;
   let score = 0;
   let shake = 0;
+  let lastClickTime = 0;
 
   function buildStars(){
     stars = [];
@@ -252,7 +279,7 @@
   }
 
   function initGame(){
-    player = {x:120, y:H*0.4, vx:2.2, vy:0, r:14};
+    player = {x:120, y:H*0.4, vx:2.2, vy:0, r:14, pulseScale: 1};
     camera = {x:0, y:player.y - H*0.45};
     clouds = [];
     particles = [];
@@ -261,6 +288,7 @@
     keys = {space:false};
     score = 0;
     shake = 0;
+    lastClickTime = 0;
     centerY = player.y + 30;
     furthestSpawnX = 0;
 
@@ -340,10 +368,25 @@
   }
 
   // ---------- input ----------
+  function triggerSpeedBoost() {
+    const now = performance.now();
+    const dt = now - lastClickTime;
+    lastClickTime = now;
+
+    if (dt < 350) {
+      const intensity = clamp(350 / Math.max(dt, 80), 1, 3);
+      player.vx += 1.8 * intensity;
+      player.vy -= 0.6 * intensity;
+      player.pulseScale = 1.4;
+      playBoostSound();
+    }
+  }
+
   function onDown(x,y){
     if (audioCtx.state === 'suspended') audioCtx.resume();
     pointer.x=x; pointer.y=y; pointer.down=true;
     if(state==='playing'){
+      triggerSpeedBoost();
       const target = findGrappleTarget();
       if(target) fireGrapple(target);
     }
@@ -363,6 +406,7 @@
       if(!keys.space){
         keys.space=true;
         if(state==='playing'){
+          triggerSpeedBoost();
           const target = findNearestAheadCloud();
           if(target) fireGrapple(target);
         }
@@ -391,6 +435,10 @@
     player.vx *= df; player.vy *= df;
     player.x += player.vx*nDt;
     player.y += player.vy*nDt;
+
+    if(player.pulseScale > 1) {
+      player.pulseScale -= 0.05 * nDt;
+    }
 
     if(grapple.active && grapple.cloud){
       const c = grapple.cloud;
@@ -503,7 +551,7 @@
         ctx.strokeStyle = 'rgba(255,0,60,0.85)';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(p.x,p.y,hint.r+12+pulse,0,Math.PI*2);
+        ctx.arc(p.x,p.y,hint.r+18+pulse,0,Math.PI*2);
         ctx.stroke();
       }
     }
@@ -536,11 +584,12 @@
     // shadow player orb
     if(state!=='start'){
       const p = worldToScreen(player.x,player.y);
+      const radius = player.r * player.pulseScale;
       
       // Shadow body
       ctx.fillStyle = '#0a0005';
       ctx.beginPath();
-      ctx.arc(p.x,p.y,player.r,0,Math.PI*2);
+      ctx.arc(p.x,p.y,radius,0,Math.PI*2);
       ctx.fill();
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#ff003c';
@@ -564,25 +613,27 @@
     ctx.save();
     const r = c.r + Math.sin(c.pulse)*1.5;
 
-    // Outer dark fog body
-    ctx.fillStyle='#1a020b';
-    ctx.strokeStyle='#ff003c';
+    // Outer dark fog body - Fluffy cloud shape structure
+    ctx.fillStyle = '#1a020b';
+    ctx.strokeStyle = '#ff003c';
     ctx.lineWidth = 2;
 
-    const puffs = [
-      [0,0,r],
-      [r*0.6,r*0.1,r*0.6],
-      [-r*0.6,r*0.1,r*0.55],
-      [r*0.2,-r*0.3,r*0.5],
-      [-r*0.25,-r*0.25,r*0.45]
+    const cloudPuffs = [
+      {dx: 0, dy: 5, rad: r * 0.95},
+      {dx: -r * 0.7, dy: 8, rad: r * 0.65},
+      {dx: r * 0.7, dy: 8, rad: r * 0.65},
+      {dx: -r * 0.4, dy: -r * 0.35, rad: r * 0.7},
+      {dx: r * 0.4, dy: -r * 0.35, rad: r * 0.7},
+      {dx: 0, dy: -r * 0.5, rad: r * 0.8}
     ];
 
-    for(const [dx,dy,rr] of puffs){
-      ctx.beginPath();
-      ctx.arc(x+dx,y+dy,rr,0,Math.PI*2);
-      ctx.fill();
-      ctx.stroke();
+    // Combine cloud puff silhouettes
+    ctx.beginPath();
+    for(const puff of cloudPuffs){
+      ctx.arc(x + puff.dx, y + puff.dy, puff.rad, 0, Math.PI * 2);
     }
+    ctx.fill();
+    ctx.stroke();
 
     // Center eye core
     ctx.fillStyle = '#ff003c';
