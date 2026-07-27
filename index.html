@@ -12,7 +12,7 @@
     --accent-cyan: #00f0ff;
     --ink: #ffffff;
     --ink-dim: #aa8899;
-    --panel-bg: rgba(10, 2, 15, 0.92);
+    --panel-bg: rgba(10, 2, 15, 0.95);
   }
   * { box-sizing: border-box; }
   html, body {
@@ -31,15 +31,13 @@
     text-align: center; color: var(--ink);
     background: radial-gradient(ellipse at 50% 30%, rgba(61,0,10,0.85), rgba(5,0,10,0.98) 75%);
     pointer-events: none;
-    animation: fadeIn 0.3s ease;
     z-index: 10;
   }
   .overlay.hidden { display: none; }
   .overlay > * { pointer-events: auto; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .title {
-    font-size: clamp(38px, 8vw, 72px);
+    font-size: clamp(36px, 7vw, 68px);
     font-weight: 900; letter-spacing: 3px; margin: 0;
     color: var(--accent-red);
     text-shadow: 4px 4px 0 #000, 0 0 20px var(--accent-red);
@@ -49,18 +47,17 @@
     letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;
   }
 
-  /* Navigation & Panels */
   .menu-box {
     background: var(--panel-bg);
-    border: 2px solid #440011;
+    border: 2px solid #550015;
     border-radius: 10px;
-    padding: 20px;
+    padding: 18px;
     margin: 15px 0;
     width: min(90%, 460px);
-    box-shadow: 0 0 20px rgba(255, 0, 60, 0.2);
+    box-shadow: 0 0 20px rgba(255, 0, 60, 0.25);
   }
 
-  .tabs { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+  .tabs { display: flex; gap: 10px; margin-bottom: 12px; justify-content: center; }
   .tab-btn {
     background: #1a0510; border: 1px solid #550015; color: var(--ink-dim);
     padding: 8px 16px; font-family: inherit; font-weight: bold; cursor: pointer;
@@ -71,18 +68,17 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
-  /* Shop Items */
   .shop-item {
     display: flex; justify-content: space-between; align-items: center;
-    background: rgba(255,255,255,0.03);
-    margin: 8px 0; padding: 10px; border-radius: 6px; border: 1px solid #330010;
+    background: rgba(255,255,255,0.04);
+    margin: 8px 0; padding: 8px 12px; border-radius: 6px; border: 1px solid #330010;
   }
   .shop-info { text-align: left; }
-  .shop-name { font-weight: bold; color: #fff; font-size: 14px; }
+  .shop-name { font-weight: bold; color: #fff; font-size: 13px; }
   .shop-desc { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
   .buy-btn {
     background: #2a0010; border: 1px solid var(--accent-gold); color: var(--accent-gold);
-    font-family: inherit; font-weight: bold; padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    font-family: inherit; font-weight: bold; padding: 6px 10px; border-radius: 4px; cursor: pointer;
   }
   .buy-btn:hover { background: var(--accent-gold); color: #000; }
   .buy-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #555; color: #555; }
@@ -96,18 +92,17 @@
   }
   .btn:hover { transform: scale(1.04); background: #ff2255; }
 
-  /* HUD */
   #hud {
     position: fixed; top: 15px; left: 0; right: 0;
     display: flex; justify-content: space-between; padding: 0 20px;
-    pointer-events: none; z-index: 5; font-weight: 900; font-size: 14px;
+    pointer-events: none; z-index: 5; font-weight: 900; font-size: 13px;
   }
   .hud-pill {
     background: rgba(5,0,10,0.85); border: 1px solid #550011;
-    padding: 8px 16px; border-radius: 6px; display: flex; gap: 15px; color: #fff;
+    padding: 8px 14px; border-radius: 6px; display: flex; gap: 15px; color: #fff;
   }
   .dash-bar-wrap { width: 120px; height: 10px; background: #220008; border: 1px solid #550015; border-radius: 5px; overflow: hidden; margin-top: 4px; }
-  .dash-bar-fill { width: 0%; height: 100%; background: var(--accent-cyan); transition: width 0.1s; }
+  .dash-bar-fill { width: 0%; height: 100%; background: var(--accent-cyan); }
 </style>
 </head>
 <body>
@@ -118,10 +113,9 @@
   <div class="hud-pill">
     <div>DEPTH: <span id="scoreVal" style="color:var(--accent-red);">0</span>m</div>
     <div>EMBERS: <span id="emberVal" style="color:var(--accent-gold);">0</span></div>
-    <div>COMBO: <span id="comboVal" style="color:var(--accent-cyan);">1x</span></div>
   </div>
   <div class="hud-pill" style="flex-direction:column; align-items:flex-end;">
-    <div>DASH METER [RIGHT CLICK / SHIFT]</div>
+    <div>DASH [R-CLICK / SHIFT]</div>
     <div class="dash-bar-wrap"><div id="dashFill" class="dash-bar-fill"></div></div>
   </div>
 </div>
@@ -132,55 +126,52 @@
 
   <div class="menu-box">
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('howTo')">CONTROLS</button>
-      <button class="tab-btn" onclick="switchTab('shop')">ABYSS SHOP</button>
+      <button class="tab-btn active" id="tabHowBtn">CONTROLS</button>
+      <button class="tab-btn" id="tabShopBtn">ABYSS SHOP</button>
     </div>
 
     <div id="howTo" class="panel active">
-      <p style="color:var(--ink-dim); font-size:13px; line-height:1.6;">
-        • <b>LEFT CLICK / SPACE:</b> Extend Tendril to grappling nodes.<br>
-        • <b>RAPID CLICK:</b> Surge forward with velocity boosts.<br>
-        • <b>RIGHT CLICK / SHIFT:</b> Unleash Sonic Dash when meter is full.<br>
-        • Avoid <b>Spiked Void Eyes</b> or shield yourself!
+      <p style="color:var(--ink-dim); font-size:12px; line-height:1.6; margin:5px 0;">
+        • <b>LEFT CLICK / SPACE:</b> Attach tendril to cloud eyes.<br>
+        • <b>RAPID CLICK:</b> Burst forward with speed.<br>
+        • <b>RIGHT CLICK / SHIFT:</b> Activate Sonic Dash when full.<br>
+        • Dodge <b>Spiked Void Eyes</b>!
       </p>
     </div>
 
     <div id="shop" class="panel">
-      <div style="font-size:13px; color:var(--accent-gold); margin-bottom:10px;">Available Embers: <span id="shopEmbers">0</span></div>
+      <div style="font-size:13px; color:var(--accent-gold); margin-bottom:8px;">Embers: <span id="shopEmbers">0</span></div>
       <div id="shopContainer"></div>
     </div>
   </div>
 
-  <button class="btn" id="playBtn">ENTER THE ABYSS</button>
+  <button class="btn" id="playBtn">ENTER THE VOID</button>
 </div>
 
 <div id="gameOverScreen" class="overlay hidden">
-  <h2 class="title" style="font-size:42px;">CONSUMED BY THE VOID</h2>
+  <h2 class="title" style="font-size:36px;">CONSUMED BY THE VOID</h2>
   <div class="menu-box" style="text-align:center;">
-    <p>Depth Reached: <b id="finalScore" style="color:var(--accent-red); font-size:22px;">0</b> m</p>
-    <p>Embers Collected: <b id="finalEmbers" style="color:var(--accent-gold); font-size:22px;">0</b></p>
+    <p>Depth Reached: <b id="finalScore" style="color:var(--accent-red); font-size:20px;">0</b> m</p>
+    <p>Embers Collected: <b id="finalEmbers" style="color:var(--accent-gold); font-size:20px;">0</b></p>
   </div>
   <button class="btn" id="retryBtn">TRY AGAIN</button>
 </div>
 
 <script>
 (function(){
-  // --- Audio Synth Engine ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function playTone(freq, type, duration, vol=0.2) {
+  function playTone(freq, type, duration, vol=0.15) {
     if (audioCtx.state !== 'running') return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const now = audioCtx.currentTime;
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
     gain.gain.setValueAtTime(vol, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(now); osc.stop(now + duration);
   }
 
-  // --- Upgrades & Persistence ---
   let embers = parseInt(localStorage.getItem('oh_embers') || '0');
   const upgrades = {
     range: parseInt(localStorage.getItem('oh_upg_range') || '0'),
@@ -190,17 +181,25 @@
   };
 
   const shopData = [
-    { id: 'range', name: 'Tendril Reach', desc: 'Increases grapple hook distance', baseCost: 25 },
-    { id: 'boost', name: 'Thrust Impulse', desc: 'Increases rapid click boost speed', baseCost: 30 },
-    { id: 'magnet', name: 'Ember Magnet', desc: 'Pulls embers from further away', baseCost: 20 },
-    { id: 'shield', name: 'Abyssal Shield', desc: 'Absorbs hazard hits', baseCost: 50 }
+    { id: 'range', name: 'Tendril Reach', desc: 'Higher grapple distance', baseCost: 15 },
+    { id: 'boost', name: 'Click Impulse', desc: 'Faster rapid-click speed', baseCost: 20 },
+    { id: 'magnet', name: 'Ember Magnet', desc: 'Pull distant embers', baseCost: 15 },
+    { id: 'shield', name: 'Void Shield', desc: 'Absorb 1 hazard hit', baseCost: 35 }
   ];
 
-  window.switchTab = function(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    event.target.classList.add('active');
-    document.getElementById(tabId).classList.add('active');
+  document.getElementById('tabHowBtn').onclick = function() {
+    document.getElementById('tabShopBtn').classList.remove('active');
+    this.classList.add('active');
+    document.getElementById('shop').classList.remove('active');
+    document.getElementById('howTo').classList.add('active');
+  };
+  
+  document.getElementById('tabShopBtn').onclick = function() {
+    document.getElementById('tabHowBtn').classList.remove('active');
+    this.classList.add('active');
+    document.getElementById('howTo').classList.remove('active');
+    document.getElementById('shop').classList.add('active');
+    renderShop();
   };
 
   function renderShop() {
@@ -217,7 +216,7 @@
           <div class="shop-name">${item.name} (Lvl ${lvl})</div>
           <div class="shop-desc">${item.desc}</div>
         </div>
-        <button class="buy-btn" ${embers < cost ? 'disabled' : ''} onclick="buyUpgrade('${item.id}', ${cost})">${cost} 🪙</button>
+        <button class="buy-btn" ${embers < cost ? 'disabled' : ''} onclick="window.buyUpgrade('${item.id}', ${cost})">${cost} 🪙</button>
       `;
       container.appendChild(div);
     });
@@ -229,12 +228,11 @@
       upgrades[id]++;
       localStorage.setItem('oh_embers', embers);
       localStorage.setItem('oh_upg_' + id, upgrades[id]);
-      playTone(600, 'sine', 0.15, 0.3);
+      playTone(600, 'sine', 0.15);
       renderShop();
     }
   };
 
-  // --- Game Setup ---
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   let W=0, H=0, DPR=Math.min(window.devicePixelRatio||1,2);
@@ -248,27 +246,22 @@
 
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-  // Game Engine State
   let state = 'start';
   let player, camera, clouds, particles, collectibles, grapple;
   let pointer = {x:0, y:0, down:false};
-  let score = 0, combo = 1, dashMeter = 0, hasShield = false;
+  let score = 0, dashMeter = 0, hasShield = false;
   let furthestSpawnX = 0, centerY = 0, lastClickTime = 0, shake = 0;
 
   function initGame() {
-    player = {
-      x: 120, y: H*0.4, vx: 2.5, vy: 0, r: 14,
-      pulseScale: 1, isDashing: 0
-    };
+    player = { x: 120, y: H*0.4, vx: 2.5, vy: 0, r: 14, pulseScale: 1, isDashing: 0 };
     camera = { x: 0, y: player.y - H*0.45 };
     clouds = []; particles = []; collectibles = [];
     grapple = { active: false, cloud: null, length: 0 };
-    score = 0; combo = 1; dashMeter = 0;
+    score = 0; dashMeter = 0;
     hasShield = upgrades.shield > 0;
     centerY = player.y + 30; furthestSpawnX = 0;
 
-    // Initial platforms
-    addCloud(300, player.y+70, 36, 'normal');
+    addCloud(300, player.y+70, 34, 'normal');
     furthestSpawnX = 300;
     while(furthestSpawnX < W*2.5) spawnNextChunk();
   }
@@ -278,22 +271,20 @@
   }
 
   function spawnNextChunk() {
-    const gap = 130 + Math.random()*120;
+    const gap = 130 + Math.random()*110;
     furthestSpawnX += gap;
-    centerY = clamp(centerY + (Math.random()-0.5)*80, player.y-400, player.y+400);
-    const y = clamp(centerY + (Math.random()-0.5)*180, 100, H*2.2);
+    centerY = clamp(centerY + (Math.random()-0.5)*80, player.y-350, player.y+350);
+    const y = clamp(centerY + (Math.random()-0.5)*180, 100, H*2);
 
-    // Determine Entity Type
     const rand = Math.random();
     let type = 'normal';
-    if (rand < 0.18) type = 'boost'; // Cyan fast launch
-    else if (rand < 0.32) type = 'hazard'; // Spiked red entity
+    if (rand < 0.18) type = 'boost';
+    else if (rand < 0.32) type = 'hazard';
 
     addCloud(furthestSpawnX, y, 32, type);
 
-    // Spawn Collectible Embers
     if (Math.random() < 0.6) {
-      collectibles.push({ x: furthestSpawnX + (Math.random()-0.5)*60, y: y - 50 - Math.random()*40, collected: false });
+      collectibles.push({ x: furthestSpawnX + (Math.random()-0.5)*40, y: y - 45, collected: false });
     }
   }
 
@@ -308,24 +299,23 @@
       player.vy -= 0.5;
       player.pulseScale = 1.35;
       dashMeter = Math.min(100, dashMeter + 12);
-      playTone(400 + combo*30, 'sine', 0.08, 0.15);
+      playTone(450, 'sine', 0.08);
     }
   }
 
   function triggerSonicDash() {
     if (dashMeter >= 100) {
       dashMeter = 0;
-      player.isDashing = 25; // Frame duration
-      player.vx += 18;
-      shake = 10;
-      playTone(800, 'sawtooth', 0.25, 0.3);
+      player.isDashing = 20;
+      player.vx += 16;
+      shake = 8;
+      playTone(800, 'sawtooth', 0.2);
     }
   }
 
-  // --- Input Wiring ---
   function onDown(e) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    if (e.button === 2) { triggerSonicDash(); return; } // Right click dash
+    if (e.button === 2) { triggerSonicDash(); return; }
     pointer.x = e.clientX; pointer.y = e.clientY; pointer.down = true;
 
     if (state === 'playing') {
@@ -334,11 +324,11 @@
       if (target) {
         if (target.type === 'hazard') {
           if (hasShield) { hasShield = false; shake = 8; playTone(200, 'sawtooth', 0.2); }
-          else { player.vx *= 0.3; shake = 12; playTone(100, 'sawtooth', 0.3); }
+          else { player.vx *= 0.3; shake = 10; playTone(100, 'sawtooth', 0.3); }
         } else {
           grapple.active = true; grapple.cloud = target;
           grapple.length = Math.hypot(player.x - target.x, player.y - target.y);
-          if (target.type === 'boost') { player.vx += 8; playTone(700, 'sine', 0.15); }
+          if (target.type === 'boost') { player.vx += 7; playTone(700, 'sine', 0.15); }
           else playTone(300, 'triangle', 0.1);
         }
       }
@@ -346,7 +336,7 @@
   }
 
   function findTarget() {
-    const range = 340 + upgrades.range * 45;
+    const range = 340 + upgrades.range * 40;
     let best = null, minD = Infinity;
     for (const c of clouds) {
       const dPlayer = Math.hypot(c.x - player.x, c.y - player.y);
@@ -366,23 +356,22 @@
     if (e.shiftKey) triggerSonicDash();
   });
 
-  // --- Game Loop Update ---
   function update(dt) {
     const nDt = clamp(dt*60, 0.001, 2);
 
-    // Player Physics
     if (player.isDashing > 0) {
       player.isDashing -= nDt;
-      player.vy = 0; // Flat trajectory while dashing
+      player.vy = 0;
     } else {
-      player.vy += 0.62 * nDt; // Gravity
+      player.vy += 0.6 * nDt;
       player.vx *= Math.pow(0.997, nDt);
     }
 
     player.x += player.vx * nDt;
     player.y += player.vy * nDt;
 
-    // Grappling Physics constraint
+    if (player.pulseScale > 1) player.pulseScale -= 0.04 * nDt;
+
     if (grapple.active && grapple.cloud) {
       const c = grapple.cloud;
       const dx = player.x - c.x, dy = player.y - c.y;
@@ -394,8 +383,7 @@
       player.vx -= rad * nx; player.vy -= rad * ny;
     }
 
-    // Magnet Collectibles
-    const magRange = 80 + upgrades.magnet * 50;
+    const magRange = 80 + upgrades.magnet * 40;
     for (const item of collectibles) {
       if (item.collected) continue;
       const d = Math.hypot(player.x - item.x, player.y - item.y);
@@ -406,15 +394,13 @@
       if (d < player.r + 10) {
         item.collected = true;
         embers++;
-        playTone(900, 'sine', 0.08, 0.2);
+        playTone(900, 'sine', 0.08);
       }
     }
 
-    // Camera track
     camera.x = player.x - W*0.35;
     camera.y += (player.y - H*0.45 - camera.y) * 0.08 * nDt;
 
-    // Spawning & Despawning
     while (furthestSpawnX < camera.x + W*1.8) spawnNextChunk();
 
     score = Math.max(score, Math.floor((player.x - 120)/10));
@@ -433,39 +419,37 @@
     document.getElementById('finalEmbers').textContent = embers;
     document.getElementById('hud').style.display = 'none';
     document.getElementById('gameOverScreen').classList.remove('hidden');
-    playTone(100, 'sawtooth', 0.5, 0.4);
+    playTone(100, 'sawtooth', 0.4);
   }
 
-  // --- Rendering ---
   function draw() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
 
-    // Sky Background
     const bg = ctx.createLinearGradient(0,0,0,H);
     bg.addColorStop(0, '#05000a'); bg.addColorStop(1, '#3d000a');
     ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-    // Entities (Clouds/Eyes)
+    // Clouds
     for (const c of clouds) {
       const sx = c.x - camera.x, sy = c.y - camera.y;
       if (sx < -100 || sx > W+100) continue;
 
       ctx.save();
-      if (c.type === 'boost') { ctx.fillStyle = '#00f0ff'; ctx.strokeStyle = '#fff'; }
-      else if (c.type === 'hazard') { ctx.fillStyle = '#1f0005'; ctx.strokeStyle = '#ff003c'; }
+      if (c.type === 'boost') { ctx.fillStyle = '#003344'; ctx.strokeStyle = '#00f0ff'; }
+      else if (c.type === 'hazard') { ctx.fillStyle = '#220005'; ctx.strokeStyle = '#ff003c'; }
       else { ctx.fillStyle = '#1a020b'; ctx.strokeStyle = '#ff003c'; }
 
-      // Cloud Silhouette
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(sx, sy, c.r, 0, Math.PI*2);
-      ctx.arc(sx-15, sy+5, c.r*0.7, 0, Math.PI*2);
-      ctx.arc(sx+15, sy+5, c.r*0.7, 0, Math.PI*2);
+      ctx.arc(sx-12, sy+4, c.r*0.6, 0, Math.PI*2);
+      ctx.arc(sx+12, sy+4, c.r*0.6, 0, Math.PI*2);
+      ctx.arc(sx, sy-8, c.r*0.65, 0, Math.PI*2);
       ctx.fill(); ctx.stroke();
 
-      // Eye Core
       ctx.fillStyle = c.type === 'hazard' ? '#ff003c' : (c.type==='boost'?'#00f0ff':'#fff');
-      ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
 
@@ -478,22 +462,24 @@
       ctx.stroke();
     }
 
-    // Collectibles (Embers)
+    // Embers
     for (const item of collectibles) {
       if (item.collected) continue;
       const sx = item.x - camera.x, sy = item.y - camera.y;
-      ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 10; ctx.shadowColor = '#ffd700';
+      ctx.fillStyle = '#ffd700';
       ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
     }
 
-    // Player Render
+    // Player Orb
     if (state === 'playing') {
       const px = player.x - camera.x, py = player.y - camera.y;
       ctx.fillStyle = player.isDashing > 0 ? '#00f0ff' : '#0a0005';
       ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(px, py, player.r * (player.pulseScale||1), 0, Math.PI*2);
       ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#ff003c';
+      ctx.beginPath(); ctx.arc(px + 3, py - 2, 2.5, 0, Math.PI * 2); ctx.fill();
 
       if (hasShield) {
         ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 2;
@@ -504,7 +490,6 @@
     ctx.restore();
   }
 
-  // Loop Execution
   let last = performance.now();
   function frame(now) {
     const dt = Math.min((now - last)/1000, 0.05);
@@ -514,7 +499,6 @@
     requestAnimationFrame(frame);
   }
 
-  // --- UI Wiring ---
   document.getElementById('playBtn').onclick = () => {
     state = 'playing';
     document.getElementById('startScreen').classList.add('hidden');
@@ -528,7 +512,6 @@
     initGame();
   };
 
-  renderShop();
   resize();
   requestAnimationFrame(frame);
 })();
