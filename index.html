@@ -253,17 +253,18 @@
   let furthestSpawnX = 0, centerY = 0, lastClickTime = 0, shake = 0;
 
   function initGame() {
-    player = { x: 120, y: H*0.4, vx: 2.5, vy: 0, r: 14, pulseScale: 1, isDashing: 0 };
-    camera = { x: 0, y: player.y - H*0.45 };
+    player = { x: 150, y: H*0.4, vx: 5, vy: -2, r: 14, pulseScale: 1, isDashing: 0 };
+    camera = { x: player.x - W*0.35, y: player.y - H*0.45 };
     clouds = []; particles = []; collectibles = [];
     grapple = { active: false, cloud: null, length: 0 };
     score = 0; dashMeter = 0;
     hasShield = upgrades.shield > 0;
-    centerY = player.y + 30; furthestSpawnX = 0;
-
-    addCloud(300, player.y+70, 34, 'normal');
-    furthestSpawnX = 300;
-    while(furthestSpawnX < W*2.5) spawnNextChunk();
+    centerY = player.y; 
+    
+    // Starting cloud directly in front of spawn
+    addCloud(280, player.y + 20, 36, 'normal');
+    furthestSpawnX = 280;
+    while(furthestSpawnX < camera.x + W*2) spawnNextChunk();
   }
 
   function addCloud(x, y, r, type) {
@@ -271,20 +272,20 @@
   }
 
   function spawnNextChunk() {
-    const gap = 130 + Math.random()*110;
+    const gap = 150 + Math.random()*110;
     furthestSpawnX += gap;
-    centerY = clamp(centerY + (Math.random()-0.5)*80, player.y-350, player.y+350);
-    const y = clamp(centerY + (Math.random()-0.5)*180, 100, H*2);
+    centerY = clamp(centerY + (Math.random()-0.5)*80, H*0.2, H*0.7);
+    const y = centerY + (Math.random()-0.5)*100;
 
     const rand = Math.random();
     let type = 'normal';
-    if (rand < 0.18) type = 'boost';
-    else if (rand < 0.32) type = 'hazard';
+    if (rand < 0.20) type = 'boost';
+    else if (rand < 0.35) type = 'hazard';
 
-    addCloud(furthestSpawnX, y, 32, type);
+    addCloud(furthestSpawnX, y, 34, type);
 
     if (Math.random() < 0.6) {
-      collectibles.push({ x: furthestSpawnX + (Math.random()-0.5)*40, y: y - 45, collected: false });
+      collectibles.push({ x: furthestSpawnX + (Math.random()-0.5)*40, y: y - 50, collected: false });
     }
   }
 
@@ -294,11 +295,11 @@
     lastClickTime = now;
 
     if (dt < 350) {
-      const boostPower = 1.8 + upgrades.boost * 0.4;
+      const boostPower = 2.2 + upgrades.boost * 0.4;
       player.vx += boostPower;
-      player.vy -= 0.5;
+      player.vy -= 1.2;
       player.pulseScale = 1.35;
-      dashMeter = Math.min(100, dashMeter + 12);
+      dashMeter = Math.min(100, dashMeter + 15);
       playTone(450, 'sine', 0.08);
     }
   }
@@ -307,7 +308,7 @@
     if (dashMeter >= 100) {
       dashMeter = 0;
       player.isDashing = 20;
-      player.vx += 16;
+      player.vx += 18;
       shake = 8;
       playTone(800, 'sawtooth', 0.2);
     }
@@ -328,7 +329,7 @@
         } else {
           grapple.active = true; grapple.cloud = target;
           grapple.length = Math.hypot(player.x - target.x, player.y - target.y);
-          if (target.type === 'boost') { player.vx += 7; playTone(700, 'sine', 0.15); }
+          if (target.type === 'boost') { player.vx += 8; playTone(700, 'sine', 0.15); }
           else playTone(300, 'triangle', 0.1);
         }
       }
@@ -336,7 +337,7 @@
   }
 
   function findTarget() {
-    const range = 340 + upgrades.range * 40;
+    const range = 350 + upgrades.range * 45;
     let best = null, minD = Infinity;
     for (const c of clouds) {
       const dPlayer = Math.hypot(c.x - player.x, c.y - player.y);
@@ -357,14 +358,14 @@
   });
 
   function update(dt) {
-    const nDt = clamp(dt*60, 0.001, 2);
+    const nDt = clamp(dt*60, 0.001, 1.8);
 
     if (player.isDashing > 0) {
       player.isDashing -= nDt;
       player.vy = 0;
     } else {
-      player.vy += 0.6 * nDt;
-      player.vx *= Math.pow(0.997, nDt);
+      player.vy += 0.45 * nDt; // Lower gravity
+      player.vx *= Math.pow(0.998, nDt);
     }
 
     player.x += player.vx * nDt;
@@ -391,7 +392,7 @@
         item.x += (player.x - item.x) * 0.15;
         item.y += (player.y - item.y) * 0.15;
       }
-      if (d < player.r + 10) {
+      if (d < player.r + 12) {
         item.collected = true;
         embers++;
         playTone(900, 'sine', 0.08);
@@ -399,17 +400,17 @@
     }
 
     camera.x = player.x - W*0.35;
-    camera.y += (player.y - H*0.45 - camera.y) * 0.08 * nDt;
+    camera.y += (player.y - H*0.45 - camera.y) * 0.1 * nDt;
 
     while (furthestSpawnX < camera.x + W*1.8) spawnNextChunk();
 
-    score = Math.max(score, Math.floor((player.x - 120)/10));
+    score = Math.max(score, Math.floor((player.x - 150)/10));
     document.getElementById('scoreVal').textContent = score;
     document.getElementById('emberVal').textContent = embers;
     document.getElementById('dashFill').style.width = dashMeter + '%';
 
     if (shake > 0) shake -= nDt;
-    if (player.y - camera.y > H + 200) gameOver();
+    if (player.y - camera.y > H + 250) gameOver();
   }
 
   function gameOver() {
