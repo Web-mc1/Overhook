@@ -3,136 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Overhook - Nightmare Sky Edition</title>
+<title>Overhook: Abyssal Surge</title>
 <style>
-  :root{
-    --sky-top:#05000a;
-    --sky-mid:#1a001a;
-    --sky-low:#3d000a;
-    --cloud:#2a0515;
-    --cloud-border:#ff003c;
-    --rope:#ff003c;
-    --ember:#ff003c;
-    --ember-core:#ffffff;
-    --ink:#ffffff;
-    --ink-dim:#aa8899;
-    --danger:#ff003c;
+  :root {
+    --bg-dark: #05000a;
+    --accent-red: #ff003c;
+    --accent-gold: #ffd700;
+    --accent-cyan: #00f0ff;
+    --ink: #ffffff;
+    --ink-dim: #aa8899;
+    --panel-bg: rgba(10, 2, 15, 0.92);
   }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0; padding:0; width:100%; height:100%;
-    background:var(--sky-top);
-    overflow:hidden;
-    font-family: 'Courier New', Courier, monospace, sans-serif;
-    user-select:none;
-    touch-action:none;
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg-dark);
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+    user-select: none;
+    touch-action: none;
   }
-  canvas{
-    display:block;
-    width:100%; height:100%;
-    cursor:crosshair;
-  }
-  .overlay{
-    position:fixed; inset:0;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; color:var(--ink);
-    background:radial-gradient(ellipse at 50% 30%, rgba(61,0,10,0.7), rgba(5,0,10,0.95) 70%);
-    pointer-events:none;
-    animation:fadein .35s ease;
-  }
-  .overlay.hidden{display:none;}
-  .overlay > *{pointer-events:auto;}
-  @keyframes fadein{from{opacity:0;}to{opacity:1;}}
+  canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
-  .title{
-    font-size:clamp(46px,10vw,84px);
-    font-weight:900;
-    letter-spacing:4px;
-    margin:0;
-    color: #ff003c;
-    text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 0 0 20px #ff003c;
-    animation: titleGlitch 2s ease-in-out infinite alternate;
+  .overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: var(--ink);
+    background: radial-gradient(ellipse at 50% 30%, rgba(61,0,10,0.85), rgba(5,0,10,0.98) 75%);
+    pointer-events: none;
+    animation: fadeIn 0.3s ease;
+    z-index: 10;
   }
-  @keyframes titleGlitch {
-    0% { transform: rotate(-1deg) translateY(0px); }
-    90% { transform: rotate(-1deg) translateY(-2px); }
-    95% { transform: rotate(1deg) translateY(2px) skewX(5deg); text-shadow: -4px -4px 0 #00ffff; }
-    100% { transform: rotate(-1deg) translateY(-4px); text-shadow: 4px 4px 0 #000, 0 0 25px #ff003c; }
+  .overlay.hidden { display: none; }
+  .overlay > * { pointer-events: auto; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .title {
+    font-size: clamp(38px, 8vw, 72px);
+    font-weight: 900; letter-spacing: 3px; margin: 0;
+    color: var(--accent-red);
+    text-shadow: 4px 4px 0 #000, 0 0 20px var(--accent-red);
+  }
+  .author {
+    color: var(--accent-gold); font-size: 14px; font-weight: bold;
+    letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;
   }
 
-  .author{
-    margin: 6px 0 0;
-    color: var(--rope);
-    font-size: clamp(14px, 2.8vw, 18px);
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    text-shadow: 0 0 10px rgba(255, 0, 60, 0.7);
+  /* Navigation & Panels */
+  .menu-box {
+    background: var(--panel-bg);
+    border: 2px solid #440011;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+    width: min(90%, 460px);
+    box-shadow: 0 0 20px rgba(255, 0, 60, 0.2);
   }
 
-  .tagline{
-    margin:8px 0 24px;
-    color:var(--ink-dim);
-    font-size:clamp(13px,2.4vw,16px);
-    letter-spacing:1px;
-    max-width:440px;
-    line-height:1.5;
-    text-shadow: 1px 1px 0 #000;
+  .tabs { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+  .tab-btn {
+    background: #1a0510; border: 1px solid #550015; color: var(--ink-dim);
+    padding: 8px 16px; font-family: inherit; font-weight: bold; cursor: pointer;
+    border-radius: 4px; transition: 0.2s;
   }
-  .rules{
-    list-style:none; padding:0; margin:0 0 30px;
-    color:var(--ink-dim);
-    font-size:14px;
-    display:flex; flex-direction:column; gap:8px;
-  }
-  .rules li{display:flex; align-items:center; gap:10px; justify-content:center;}
-  .dot{
-    width:7px;height:7px;border-radius:50%;
-    background:var(--rope);
-    box-shadow:0 0 8px var(--rope);
-    flex:none;
-  }
-  .btn{
-    appearance:none; border:none; cursor:pointer;
-    font-family:inherit; font-weight:900; letter-spacing:2px;
-    font-size:18px; color:#ffffff;
-    padding:14px 38px; border-radius:6px;
-    background:#ff003c;
-    border: 2px solid #000;
-    box-shadow:0 0 15px rgba(255,0,60,0.6);
-    transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
-  }
-  .btn:hover{transform:scale(1.05); background:#ff2255; box-shadow:0 0 25px rgba(255,0,60,0.9);}
-  .btn:active{transform:scale(0.98);}
+  .tab-btn.active, .tab-btn:hover { color: #fff; border-color: var(--accent-red); background: #3d0010; }
 
-  #hud{
-    position:fixed; top:18px; left:0; right:0;
-    display:flex; justify-content:center;
-    pointer-events:none;
-    color:var(--ink);
-    font-weight:900; font-size:15px; letter-spacing:1px;
-  }
-  #hud .pill{
-    background:rgba(5,0,10,0.85);
-    border:1px solid #550011;
-    box-shadow: 0 4px 10px #000;
-    padding:8px 18px; border-radius:6px;
-    display:flex; gap:18px;
-  }
-  #hud span.label{color:var(--ink-dim); font-weight:700; margin-right:4px;}
-  #hud .best{color:var(--rope);}
+  .panel { display: none; }
+  .panel.active { display: block; }
 
-  .go-title{
-    font-size:clamp(30px,7vw,46px);
-    font-weight:900; margin:0 0 6px;
-    color:var(--danger);
-    text-shadow:0 0 18px rgba(255,0,60,0.8);
-    letter-spacing: 2px;
+  /* Shop Items */
+  .shop-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,0.03);
+    margin: 8px 0; padding: 10px; border-radius: 6px; border: 1px solid #330010;
   }
-  .stat{
-    font-size:15px; color:var(--ink-dim); margin:4px 0;
+  .shop-info { text-align: left; }
+  .shop-name { font-weight: bold; color: #fff; font-size: 14px; }
+  .shop-desc { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+  .buy-btn {
+    background: #2a0010; border: 1px solid var(--accent-gold); color: var(--accent-gold);
+    font-family: inherit; font-weight: bold; padding: 6px 12px; border-radius: 4px; cursor: pointer;
   }
-  .stat b{color:var(--ink); font-size:22px;}
+  .buy-btn:hover { background: var(--accent-gold); color: #000; }
+  .buy-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #555; color: #555; }
+
+  .btn {
+    appearance: none; border: none; cursor: pointer;
+    font-family: inherit; font-weight: 900; letter-spacing: 2px;
+    font-size: 18px; color: #fff; padding: 12px 32px; border-radius: 6px;
+    background: var(--accent-red); border: 2px solid #000;
+    box-shadow: 0 0 15px rgba(255,0,60,0.6); transition: 0.15s;
+  }
+  .btn:hover { transform: scale(1.04); background: #ff2255; }
+
+  /* HUD */
+  #hud {
+    position: fixed; top: 15px; left: 0; right: 0;
+    display: flex; justify-content: space-between; padding: 0 20px;
+    pointer-events: none; z-index: 5; font-weight: 900; font-size: 14px;
+  }
+  .hud-pill {
+    background: rgba(5,0,10,0.85); border: 1px solid #550011;
+    padding: 8px 16px; border-radius: 6px; display: flex; gap: 15px; color: #fff;
+  }
+  .dash-bar-wrap { width: 120px; height: 10px; background: #220008; border: 1px solid #550015; border-radius: 5px; overflow: hidden; margin-top: 4px; }
+  .dash-bar-fill { width: 0%; height: 100%; background: var(--accent-cyan); transition: width 0.1s; }
 </style>
 </head>
 <body>
@@ -140,541 +115,420 @@
 <canvas id="game"></canvas>
 
 <div id="hud" style="display:none;">
-  <div class="pill">
-    <div><span class="label">DEPTH</span><span id="scoreVal" style="color:#ff003c;">0</span>m</div>
-    <div class="best"><span class="label" style="color:inherit;">MAX DEPTH</span><span id="bestVal">0</span>m</div>
+  <div class="hud-pill">
+    <div>DEPTH: <span id="scoreVal" style="color:var(--accent-red);">0</span>m</div>
+    <div>EMBERS: <span id="emberVal" style="color:var(--accent-gold);">0</span></div>
+    <div>COMBO: <span id="comboVal" style="color:var(--accent-cyan);">1x</span></div>
+  </div>
+  <div class="hud-pill" style="flex-direction:column; align-items:flex-end;">
+    <div>DASH METER [RIGHT CLICK / SHIFT]</div>
+    <div class="dash-bar-wrap"><div id="dashFill" class="dash-bar-fill"></div></div>
   </div>
 </div>
 
 <div id="startScreen" class="overlay">
   <h1 class="title">OVERHOOK</h1>
   <div class="author">Made by FryedCheese</div>
-  <p class="tagline">NIGHTMARE SKY EDITION</p>
-  <ul class="rules">
-    <li><span class="dot"></span> Click rapidly to surge forward with speed boosts</li>
-    <li><span class="dot"></span> Hold near an eye entity to extend your tendril</li>
-    <li><span class="dot"></span> Escape the crimson void before it claims you</li>
-  </ul>
-  <button class="btn" id="playBtn">ENTER THE VOID</button>
+
+  <div class="menu-box">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('howTo')">CONTROLS</button>
+      <button class="tab-btn" onclick="switchTab('shop')">ABYSS SHOP</button>
+    </div>
+
+    <div id="howTo" class="panel active">
+      <p style="color:var(--ink-dim); font-size:13px; line-height:1.6;">
+        • <b>LEFT CLICK / SPACE:</b> Extend Tendril to grappling nodes.<br>
+        • <b>RAPID CLICK:</b> Surge forward with velocity boosts.<br>
+        • <b>RIGHT CLICK / SHIFT:</b> Unleash Sonic Dash when meter is full.<br>
+        • Avoid <b>Spiked Void Eyes</b> or shield yourself!
+      </p>
+    </div>
+
+    <div id="shop" class="panel">
+      <div style="font-size:13px; color:var(--accent-gold); margin-bottom:10px;">Available Embers: <span id="shopEmbers">0</span></div>
+      <div id="shopContainer"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="playBtn">ENTER THE ABYSS</button>
 </div>
 
 <div id="gameOverScreen" class="overlay hidden">
-  <h2 class="go-title">CONSUMED BY THE ABYSS</h2>
-  <p class="stat">Depth Reached<br><b id="finalScore">0</b> m</p>
-  <p class="stat">Max Depth<br><b id="finalBest">0</b> m</p>
-  <button class="btn" id="retryBtn" style="margin-top:18px;">TRY AGAIN</button>
+  <h2 class="title" style="font-size:42px;">CONSUMED BY THE VOID</h2>
+  <div class="menu-box" style="text-align:center;">
+    <p>Depth Reached: <b id="finalScore" style="color:var(--accent-red); font-size:22px;">0</b> m</p>
+    <p>Embers Collected: <b id="finalEmbers" style="color:var(--accent-gold); font-size:22px;">0</b></p>
+  </div>
+  <button class="btn" id="retryBtn">TRY AGAIN</button>
 </div>
 
 <script>
 (function(){
-  // Audio Synthesizer
+  // --- Audio Synth Engine ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-  function playHookSound() {
+  function playTone(freq, type, duration, vol=0.2) {
     if (audioCtx.state !== 'running') return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const now = audioCtx.currentTime;
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(300, now);
-    osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.15);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + duration);
   }
 
-  function playBoostSound() {
-    if (audioCtx.state !== 'running') return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const now = audioCtx.currentTime;
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.08);
+  // --- Upgrades & Persistence ---
+  let embers = parseInt(localStorage.getItem('oh_embers') || '0');
+  const upgrades = {
+    range: parseInt(localStorage.getItem('oh_upg_range') || '0'),
+    boost: parseInt(localStorage.getItem('oh_upg_boost') || '0'),
+    magnet: parseInt(localStorage.getItem('oh_upg_magnet') || '0'),
+    shield: parseInt(localStorage.getItem('oh_upg_shield') || '0')
+  };
+
+  const shopData = [
+    { id: 'range', name: 'Tendril Reach', desc: 'Increases grapple hook distance', baseCost: 25 },
+    { id: 'boost', name: 'Thrust Impulse', desc: 'Increases rapid click boost speed', baseCost: 30 },
+    { id: 'magnet', name: 'Ember Magnet', desc: 'Pulls embers from further away', baseCost: 20 },
+    { id: 'shield', name: 'Abyssal Shield', desc: 'Absorbs hazard hits', baseCost: 50 }
+  ];
+
+  window.switchTab = function(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  };
+
+  function renderShop() {
+    document.getElementById('shopEmbers').textContent = embers;
+    const container = document.getElementById('shopContainer');
+    container.innerHTML = '';
+    shopData.forEach(item => {
+      const lvl = upgrades[item.id];
+      const cost = item.baseCost * (lvl + 1);
+      const div = document.createElement('div');
+      div.className = 'shop-item';
+      div.innerHTML = `
+        <div class="shop-info">
+          <div class="shop-name">${item.name} (Lvl ${lvl})</div>
+          <div class="shop-desc">${item.desc}</div>
+        </div>
+        <button class="buy-btn" ${embers < cost ? 'disabled' : ''} onclick="buyUpgrade('${item.id}', ${cost})">${cost} 🪙</button>
+      `;
+      container.appendChild(div);
+    });
   }
 
-  function playDeathSound() {
-    if (audioCtx.state !== 'running') return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const now = audioCtx.currentTime;
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.6);
-  }
+  window.buyUpgrade = function(id, cost) {
+    if (embers >= cost) {
+      embers -= cost;
+      upgrades[id]++;
+      localStorage.setItem('oh_embers', embers);
+      localStorage.setItem('oh_upg_' + id, upgrades[id]);
+      playTone(600, 'sine', 0.15, 0.3);
+      renderShop();
+    }
+  };
 
+  // --- Game Setup ---
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const startScreen = document.getElementById('startScreen');
-  const gameOverScreen = document.getElementById('gameOverScreen');
-  const hud = document.getElementById('hud');
-  const scoreVal = document.getElementById('scoreVal');
-  const bestVal = document.getElementById('bestVal');
-  const finalScore = document.getElementById('finalScore');
-  const finalBest = document.getElementById('finalBest');
+  let W=0, H=0, DPR=Math.min(window.devicePixelRatio||1,2);
 
-  let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
-  function resize(){
+  function resize() {
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = W*DPR; canvas.height = H*DPR;
-    canvas.style.width=W+'px'; canvas.style.height=H+'px';
     ctx.setTransform(DPR,0,0,DPR,0,0);
-    buildStars();
   }
   window.addEventListener('resize', resize);
 
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-  // ---------- constants ----------
-  const GRAVITY = 0.62;
-  const DRAG = 0.9975;
-  const MAX_GRAPPLE_RANGE = 340;
-  const CLOUD_MIN_R = 20;
-
-  // ---------- state ----------
+  // Game Engine State
   let state = 'start';
-  let best = 0;
-  let stars = [];
-
-  let player = null;
-  let camera = {x:0, y:0};
-  let clouds = [];
-  let particles = [];
-  let grapple = {active:false, cloud:null, length:0};
+  let player, camera, clouds, particles, collectibles, grapple;
   let pointer = {x:0, y:0, down:false};
-  let keys = {space:false};
-  let furthestSpawnX = 0;
-  let centerY = 0;
-  let score = 0;
-  let shake = 0;
-  let lastClickTime = 0;
+  let score = 0, combo = 1, dashMeter = 0, hasShield = false;
+  let furthestSpawnX = 0, centerY = 0, lastClickTime = 0, shake = 0;
 
-  function buildStars(){
-    stars = [];
-    const count = Math.floor((W*H)/8000);
-    for(let i=0;i<count;i++){
-      stars.push({
-        x: Math.random()*W*3 - W,
-        y: Math.random()*H,
-        r: Math.random()*2+0.5,
-        tw: Math.random()*Math.PI*2,
-        layer: Math.random()<0.5?0.15:0.35
-      });
-    }
-  }
+  function initGame() {
+    player = {
+      x: 120, y: H*0.4, vx: 2.5, vy: 0, r: 14,
+      pulseScale: 1, isDashing: 0
+    };
+    camera = { x: 0, y: player.y - H*0.45 };
+    clouds = []; particles = []; collectibles = [];
+    grapple = { active: false, cloud: null, length: 0 };
+    score = 0; combo = 1; dashMeter = 0;
+    hasShield = upgrades.shield > 0;
+    centerY = player.y + 30; furthestSpawnX = 0;
 
-  function initGame(){
-    player = {x:120, y:H*0.4, vx:2.2, vy:0, r:14, pulseScale: 1};
-    camera = {x:0, y:player.y - H*0.45};
-    clouds = [];
-    particles = [];
-    grapple = {active:false, cloud:null, length:0};
-    pointer = {x:W*0.6, y:H*0.4, down:false};
-    keys = {space:false};
-    score = 0;
-    shake = 0;
-    lastClickTime = 0;
-    centerY = player.y + 30;
-    furthestSpawnX = 0;
-
-    addCloud(300, player.y+70, 34, false);
+    // Initial platforms
+    addCloud(300, player.y+70, 36, 'normal');
     furthestSpawnX = 300;
-    while(furthestSpawnX < W*2) spawnNextCloud();
+    while(furthestSpawnX < W*2.5) spawnNextChunk();
   }
 
-  function addCloud(x,y,r,moving){
-    const axis = Math.random()<0.5?'x':'y';
-    clouds.push({
-      x,y,r,moving,
-      baseX:x, baseY:y,
-      phase:Math.random()*Math.PI*2,
-      amp: 36+Math.random()*70,
-      speed: 0.35+Math.random()*0.55,
-      axis,
-      pulse: Math.random() * Math.PI * 2
-    });
+  function addCloud(x, y, r, type) {
+    clouds.push({ x, y, r, type, pulse: Math.random()*Math.PI*2 });
   }
 
-  function spawnNextCloud(){
-    const distFactor = clamp(furthestSpawnX/6500, 0, 1);
-    const gap = 125 + distFactor*95 + Math.random()*(95+distFactor*150);
-    const vertVar = 60 + distFactor*150;
-    const drift = 40 + distFactor*70;
-
-    centerY += (Math.random()-0.5)*drift;
-    centerY = clamp(centerY, player.y-520, player.y+520);
-
-    let y = centerY + (Math.random()-0.5)*2*vertVar;
-    y = clamp(y, 90, H*2.4);
-
-    const r = clamp(38 - distFactor*10 - Math.random()*8, CLOUD_MIN_R, 42);
-    const movingChance = 0.12 + distFactor*0.36;
-    const moving = Math.random() < movingChance;
-
+  function spawnNextChunk() {
+    const gap = 130 + Math.random()*120;
     furthestSpawnX += gap;
-    addCloud(furthestSpawnX, y, r, moving);
-  }
+    centerY = clamp(centerY + (Math.random()-0.5)*80, player.y-400, player.y+400);
+    const y = clamp(centerY + (Math.random()-0.5)*180, 100, H*2.2);
 
-  function worldToScreen(x,y){ return {x: x-camera.x, y: y-camera.y}; }
-  function screenToWorld(x,y){ return {x: x+camera.x, y: y+camera.y}; }
+    // Determine Entity Type
+    const rand = Math.random();
+    let type = 'normal';
+    if (rand < 0.18) type = 'boost'; // Cyan fast launch
+    else if (rand < 0.32) type = 'hazard'; // Spiked red entity
 
-  function findGrappleTarget(){
-    const w = screenToWorld(pointer.x, pointer.y);
-    let best=null, bestD=Infinity;
-    for(const c of clouds){
-      const dPlayer = Math.hypot(c.x-player.x, c.y-player.y);
-      if(dPlayer > MAX_GRAPPLE_RANGE) continue;
-      const dPointer = Math.hypot(c.x-w.x, c.y-w.y);
-      if(dPointer < bestD){ bestD=dPointer; best=c; }
+    addCloud(furthestSpawnX, y, 32, type);
+
+    // Spawn Collectible Embers
+    if (Math.random() < 0.6) {
+      collectibles.push({ x: furthestSpawnX + (Math.random()-0.5)*60, y: y - 50 - Math.random()*40, collected: false });
     }
-    return best;
   }
 
-  function findNearestAheadCloud(){
-    let best=null, bestD=Infinity;
-    for(const c of clouds){
-      if(c.x < player.x-10) continue;
-      const d = Math.hypot(c.x-player.x, c.y-player.y);
-      if(d>MAX_GRAPPLE_RANGE) continue;
-      if(d<bestD){bestD=d;best=c;}
-    }
-    return best;
-  }
-
-  function fireGrapple(cloud){
-    if(!cloud) return;
-    grapple.active = true;
-    grapple.cloud = cloud;
-    grapple.length = Math.hypot(player.x-cloud.x, player.y-cloud.y);
-    playHookSound();
-  }
-  function releaseGrapple(){
-    grapple.active=false; grapple.cloud=null;
-  }
-
-  // ---------- input ----------
   function triggerSpeedBoost() {
     const now = performance.now();
     const dt = now - lastClickTime;
     lastClickTime = now;
 
     if (dt < 350) {
-      const intensity = clamp(350 / Math.max(dt, 80), 1, 3);
-      player.vx += 1.8 * intensity;
-      player.vy -= 0.6 * intensity;
-      player.pulseScale = 1.4;
-      playBoostSound();
+      const boostPower = 1.8 + upgrades.boost * 0.4;
+      player.vx += boostPower;
+      player.vy -= 0.5;
+      player.pulseScale = 1.35;
+      dashMeter = Math.min(100, dashMeter + 12);
+      playTone(400 + combo*30, 'sine', 0.08, 0.15);
     }
   }
 
-  function onDown(x,y){
+  function triggerSonicDash() {
+    if (dashMeter >= 100) {
+      dashMeter = 0;
+      player.isDashing = 25; // Frame duration
+      player.vx += 18;
+      shake = 10;
+      playTone(800, 'sawtooth', 0.25, 0.3);
+    }
+  }
+
+  // --- Input Wiring ---
+  function onDown(e) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    pointer.x=x; pointer.y=y; pointer.down=true;
-    if(state==='playing'){
+    if (e.button === 2) { triggerSonicDash(); return; } // Right click dash
+    pointer.x = e.clientX; pointer.y = e.clientY; pointer.down = true;
+
+    if (state === 'playing') {
       triggerSpeedBoost();
-      const target = findGrappleTarget();
-      if(target) fireGrapple(target);
-    }
-  }
-  function onMove(x,y){ pointer.x=x; pointer.y=y; }
-  function onUp(){ pointer.down=false; releaseGrapple(); }
-
-  canvas.addEventListener('pointerdown', e=>{ onDown(e.clientX,e.clientY); });
-  canvas.addEventListener('pointermove', e=>{ onMove(e.clientX,e.clientY); });
-  window.addEventListener('pointerup', onUp);
-  window.addEventListener('pointercancel', onUp);
-
-  window.addEventListener('keydown', e=>{
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    if(e.code==='Space'){
-      e.preventDefault();
-      if(!keys.space){
-        keys.space=true;
-        if(state==='playing'){
-          triggerSpeedBoost();
-          const target = findNearestAheadCloud();
-          if(target) fireGrapple(target);
+      const target = findTarget();
+      if (target) {
+        if (target.type === 'hazard') {
+          if (hasShield) { hasShield = false; shake = 8; playTone(200, 'sawtooth', 0.2); }
+          else { player.vx *= 0.3; shake = 12; playTone(100, 'sawtooth', 0.3); }
+        } else {
+          grapple.active = true; grapple.cloud = target;
+          grapple.length = Math.hypot(player.x - target.x, player.y - target.y);
+          if (target.type === 'boost') { player.vx += 8; playTone(700, 'sine', 0.15); }
+          else playTone(300, 'triangle', 0.1);
         }
       }
     }
-  });
-  window.addEventListener('keyup', e=>{
-    if(e.code==='Space'){ keys.space=false; if(!pointer.down) releaseGrapple(); }
-  });
+  }
 
-  // ---------- update ----------
-  function update(dt){
-    const nDt = clamp(dt*60, 0.001, 2.2);
-
-    for(const c of clouds){
-      c.pulse += 0.05 * nDt;
-      if(c.moving){
-        c.phase += c.speed*0.016*nDt;
-        if(c.axis==='x') c.x = c.baseX + Math.sin(c.phase)*c.amp;
-        else c.y = c.baseY + Math.sin(c.phase)*c.amp;
+  function findTarget() {
+    const range = 340 + upgrades.range * 45;
+    let best = null, minD = Infinity;
+    for (const c of clouds) {
+      const dPlayer = Math.hypot(c.x - player.x, c.y - player.y);
+      if (dPlayer < range) {
+        const dPointer = Math.hypot(c.x - (pointer.x + camera.x), c.y - (pointer.y + camera.y));
+        if (dPointer < minD) { minD = dPointer; best = c; }
       }
     }
+    return best;
+  }
 
-    player.vy += GRAVITY*nDt;
-    const df = Math.pow(DRAG, nDt);
-    player.vx *= df; player.vy *= df;
-    player.x += player.vx*nDt;
-    player.y += player.vy*nDt;
+  window.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointerup', () => { pointer.down = false; grapple.active = false; });
+  window.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); onDown({ clientX: W/2, clientY: H/2, button: 0 }); }
+    if (e.shiftKey) triggerSonicDash();
+  });
 
-    if(player.pulseScale > 1) {
-      player.pulseScale -= 0.05 * nDt;
+  // --- Game Loop Update ---
+  function update(dt) {
+    const nDt = clamp(dt*60, 0.001, 2);
+
+    // Player Physics
+    if (player.isDashing > 0) {
+      player.isDashing -= nDt;
+      player.vy = 0; // Flat trajectory while dashing
+    } else {
+      player.vy += 0.62 * nDt; // Gravity
+      player.vx *= Math.pow(0.997, nDt);
     }
 
-    if(grapple.active && grapple.cloud){
+    player.x += player.vx * nDt;
+    player.y += player.vy * nDt;
+
+    // Grappling Physics constraint
+    if (grapple.active && grapple.cloud) {
       const c = grapple.cloud;
-      let dx = player.x-c.x, dy = player.y-c.y;
-      let dist = Math.hypot(dx,dy) || 0.0001;
-      const nx=dx/dist, ny=dy/dist;
-      player.x = c.x + nx*grapple.length;
-      player.y = c.y + ny*grapple.length;
-      const radial = player.vx*nx + player.vy*ny;
-      player.vx -= radial*nx;
-      player.vy -= radial*ny;
+      const dx = player.x - c.x, dy = player.y - c.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const nx = dx/dist, ny = dy/dist;
+      player.x = c.x + nx * grapple.length;
+      player.y = c.y + ny * grapple.length;
+      const rad = player.vx*nx + player.vy*ny;
+      player.vx -= rad * nx; player.vy -= rad * ny;
     }
 
-    // trail
-    const speed = Math.hypot(player.vx,player.vy);
-    particles.push({x:player.x,y:player.y,life:1, speed});
-    if(particles.length>42) particles.shift();
-    for(const p of particles) p.life -= 0.045*nDt;
-    particles = particles.filter(p=>p.life>0);
-
-    // camera
-    camera.x = player.x - W*0.35;
-    const targetCamY = player.y - H*0.45;
-    camera.y += (targetCamY-camera.y)*clamp(0.09*nDt,0,1);
-
-    // spawn / prune
-    while(furthestSpawnX < camera.x + W*1.7) spawnNextCloud();
-    if(clouds.length>4) clouds = clouds.filter(c=>c.x > camera.x-400);
-
-    score = Math.max(score, Math.floor((player.x-120)/10));
-    scoreVal.textContent = score;
-    bestVal.textContent = Math.max(best,score);
-
-    if(shake>0) shake = Math.max(0, shake-nDt*1.2);
-
-    if(player.y - camera.y > H+200){
-      triggerGameOver();
-    }
-  }
-
-  function triggerGameOver(){
-    if(state!=='playing') return;
-    state='gameover';
-    shake = 12;
-    playDeathSound();
-    best = Math.max(best, score);
-    finalScore.textContent = score;
-    finalBest.textContent = best;
-    hud.style.display='none';
-    setTimeout(()=>{ gameOverScreen.classList.remove('hidden'); }, 380);
-  }
-
-  // ---------- render ----------
-  function skyGradient(){
-    const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#05000a');
-    g.addColorStop(0.6,'#1a001a');
-    g.addColorStop(1,'#3d000a');
-    return g;
-  }
-
-  function draw(t){
-    ctx.save();
-    if(shake>0){
-      ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
-    }
-
-    ctx.fillStyle = skyGradient();
-    ctx.fillRect(0,0,W,H);
-
-    // blood particles (parallax)
-    for(const s of stars){
-      const sx = ((s.x - camera.x*s.layer) % (W*3) + W*3) % (W*3) - W;
-      const alpha = 0.2 + 0.4*Math.sin(t*0.002 + s.tw);
-      ctx.fillStyle = `rgba(255,0,60,${clamp(alpha,0.1,0.8)})`;
-      ctx.beginPath();
-      ctx.arc(sx, s.y, s.r, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // void fog band
-    ctx.save();
-    ctx.globalAlpha = 0.15;
-    const ag = ctx.createLinearGradient(0,H*0.1,0,H*0.6);
-    ag.addColorStop(0,'#ff003c');
-    ag.addColorStop(1,'rgba(255,0,60,0)');
-    ctx.fillStyle = ag;
-    ctx.beginPath();
-    ctx.moveTo(0,H*0.22);
-    for(let x=0;x<=W;x+=40){
-      ctx.lineTo(x, H*0.22 + Math.sin((x+camera.x*0.2)*0.004 + t*0.0004)*30);
-    }
-    ctx.lineTo(W,0); ctx.lineTo(0,0); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    // cloud entities
-    for(const c of clouds){
-      const p = worldToScreen(c.x,c.y);
-      if(p.x < -120 || p.x > W+120) continue;
-      drawCloud(p.x,p.y,c);
-    }
-
-    // grapple hint ring
-    if(state==='playing' && !grapple.active){
-      const hint = findGrappleTarget();
-      if(hint){
-        const p = worldToScreen(hint.x,hint.y);
-        const pulse = 4+Math.sin(t*0.008)*3;
-        ctx.strokeStyle = 'rgba(255,0,60,0.85)';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,hint.r+18+pulse,0,Math.PI*2);
-        ctx.stroke();
+    // Magnet Collectibles
+    const magRange = 80 + upgrades.magnet * 50;
+    for (const item of collectibles) {
+      if (item.collected) continue;
+      const d = Math.hypot(player.x - item.x, player.y - item.y);
+      if (d < magRange) {
+        item.x += (player.x - item.x) * 0.15;
+        item.y += (player.y - item.y) * 0.15;
+      }
+      if (d < player.r + 10) {
+        item.collected = true;
+        embers++;
+        playTone(900, 'sine', 0.08, 0.2);
       }
     }
 
-    // tendril rope
-    if(grapple.active && grapple.cloud){
-      const a = worldToScreen(grapple.cloud.x, grapple.cloud.y);
-      const b = worldToScreen(player.x, player.y);
-      ctx.strokeStyle = '#ff003c';
-      ctx.lineWidth = 3.5;
-      ctx.shadowColor = '#ff003c';
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(a.x,a.y);
-      ctx.lineTo(b.x,b.y);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
+    // Camera track
+    camera.x = player.x - W*0.35;
+    camera.y += (player.y - H*0.45 - camera.y) * 0.08 * nDt;
 
-    // shadow trail
-    for(let i=0;i<particles.length;i++){
-      const p = particles[i];
-      const s = worldToScreen(p.x,p.y);
-      ctx.fillStyle = `rgba(255, 0, 60, ${p.life*0.5})`;
-      ctx.beginPath();
-      ctx.arc(s.x,s.y, 7*p.life, 0, Math.PI*2);
-      ctx.fill();
-    }
+    // Spawning & Despawning
+    while (furthestSpawnX < camera.x + W*1.8) spawnNextChunk();
 
-    // shadow player orb
-    if(state!=='start'){
-      const p = worldToScreen(player.x,player.y);
-      const radius = player.r * player.pulseScale;
-      
-      // Shadow body
-      ctx.fillStyle = '#0a0005';
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,radius,0,Math.PI*2);
-      ctx.fill();
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#ff003c';
-      ctx.stroke();
+    score = Math.max(score, Math.floor((player.x - 120)/10));
+    document.getElementById('scoreVal').textContent = score;
+    document.getElementById('emberVal').textContent = embers;
+    document.getElementById('dashFill').style.width = dashMeter + '%';
 
-      // Glowing eyes
-      ctx.fillStyle = '#ff003c';
-      ctx.shadowColor = '#ff003c';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(p.x + 2, p.y - 2, 2.5, 0, Math.PI * 2);
-      ctx.arc(p.x + 7, p.y - 2, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-
-    ctx.restore();
+    if (shake > 0) shake -= nDt;
+    if (player.y - camera.y > H + 200) gameOver();
   }
 
-  function drawCloud(x,y,c){
+  function gameOver() {
+    state = 'gameover';
+    localStorage.setItem('oh_embers', embers);
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalEmbers').textContent = embers;
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+    playTone(100, 'sawtooth', 0.5, 0.4);
+  }
+
+  // --- Rendering ---
+  function draw() {
     ctx.save();
-    const r = c.r + Math.sin(c.pulse)*1.5;
+    if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
 
-    // Outer dark fog body - Fluffy cloud shape structure
-    ctx.fillStyle = '#1a020b';
-    ctx.strokeStyle = '#ff003c';
-    ctx.lineWidth = 2;
+    // Sky Background
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#05000a'); bg.addColorStop(1, '#3d000a');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-    const cloudPuffs = [
-      {dx: 0, dy: 5, rad: r * 0.95},
-      {dx: -r * 0.7, dy: 8, rad: r * 0.65},
-      {dx: r * 0.7, dy: 8, rad: r * 0.65},
-      {dx: -r * 0.4, dy: -r * 0.35, rad: r * 0.7},
-      {dx: r * 0.4, dy: -r * 0.35, rad: r * 0.7},
-      {dx: 0, dy: -r * 0.5, rad: r * 0.8}
-    ];
+    // Entities (Clouds/Eyes)
+    for (const c of clouds) {
+      const sx = c.x - camera.x, sy = c.y - camera.y;
+      if (sx < -100 || sx > W+100) continue;
 
-    // Combine cloud puff silhouettes
-    ctx.beginPath();
-    for(const puff of cloudPuffs){
-      ctx.arc(x + puff.dx, y + puff.dy, puff.rad, 0, Math.PI * 2);
+      ctx.save();
+      if (c.type === 'boost') { ctx.fillStyle = '#00f0ff'; ctx.strokeStyle = '#fff'; }
+      else if (c.type === 'hazard') { ctx.fillStyle = '#1f0005'; ctx.strokeStyle = '#ff003c'; }
+      else { ctx.fillStyle = '#1a020b'; ctx.strokeStyle = '#ff003c'; }
+
+      // Cloud Silhouette
+      ctx.beginPath();
+      ctx.arc(sx, sy, c.r, 0, Math.PI*2);
+      ctx.arc(sx-15, sy+5, c.r*0.7, 0, Math.PI*2);
+      ctx.arc(sx+15, sy+5, c.r*0.7, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+
+      // Eye Core
+      ctx.fillStyle = c.type === 'hazard' ? '#ff003c' : (c.type==='boost'?'#00f0ff':'#fff');
+      ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
     }
-    ctx.fill();
-    ctx.stroke();
 
-    // Center eye core
-    ctx.fillStyle = '#ff003c';
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.35, 0, Math.PI * 2);
-    ctx.fill();
+    // Tendril Rope
+    if (grapple.active && grapple.cloud) {
+      ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(grapple.cloud.x - camera.x, grapple.cloud.y - camera.y);
+      ctx.lineTo(player.x - camera.x, player.y - camera.y);
+      ctx.stroke();
+    }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.15, 0, Math.PI * 2);
-    ctx.fill();
+    // Collectibles (Embers)
+    for (const item of collectibles) {
+      if (item.collected) continue;
+      const sx = item.x - camera.x, sy = item.y - camera.y;
+      ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 10; ctx.shadowColor = '#ffd700';
+      ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Player Render
+    if (state === 'playing') {
+      const px = player.x - camera.x, py = player.y - camera.y;
+      ctx.fillStyle = player.isDashing > 0 ? '#00f0ff' : '#0a0005';
+      ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(px, py, player.r * (player.pulseScale||1), 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+
+      if (hasShield) {
+        ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(px, py, player.r + 6, 0, Math.PI*2); ctx.stroke();
+      }
+    }
 
     ctx.restore();
   }
 
-  // ---------- loop ----------
+  // Loop Execution
   let last = performance.now();
-  function frame(now){
-    const dt = Math.min((now-last)/1000, 0.05);
+  function frame(now) {
+    const dt = Math.min((now - last)/1000, 0.05);
     last = now;
-    if(state==='playing') update(dt);
-    draw(now);
+    if (state === 'playing') update(dt);
+    draw();
     requestAnimationFrame(frame);
   }
 
-  // ---------- UI wiring ----------
-  document.getElementById('playBtn').addEventListener('click', ()=>{
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    startScreen.classList.add('hidden');
-    hud.style.display='flex';
+  // --- UI Wiring ---
+  document.getElementById('playBtn').onclick = () => {
+    state = 'playing';
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'flex';
     initGame();
-    state='playing';
-  });
-  document.getElementById('retryBtn').addEventListener('click', ()=>{
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    gameOverScreen.classList.add('hidden');
-    hud.style.display='flex';
+  };
+  document.getElementById('retryBtn').onclick = () => {
+    state = 'playing';
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'flex';
     initGame();
-    state='playing';
-  });
+  };
 
+  renderShop();
   resize();
   requestAnimationFrame(frame);
 })();
