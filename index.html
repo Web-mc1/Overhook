@@ -83,14 +83,23 @@
   .buy-btn:hover { background: var(--accent-gold); color: #000; }
   .buy-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #555; color: #555; }
 
+  .btn-group {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  }
+
   .btn {
     appearance: none; border: none; cursor: pointer;
     font-family: inherit; font-weight: 900; letter-spacing: 2px;
-    font-size: 18px; color: #fff; padding: 12px 32px; border-radius: 6px;
+    font-size: 16px; color: #fff; padding: 12px 24px; border-radius: 6px;
     background: var(--accent-red); border: 2px solid #fff;
     box-shadow: 0 0 20px rgba(255,0,85,0.8); transition: 0.15s;
   }
   .btn:hover { transform: scale(1.05); background: #ff2277; }
+  .btn-secondary {
+    background: #200518; border-color: var(--accent-gold); color: var(--accent-gold);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+  }
+  .btn-secondary:hover { background: #400a30; }
 
   #hud {
     position: fixed; top: 15px; left: 0; right: 0;
@@ -116,7 +125,7 @@
     <div>EMBERS: <span id="emberVal" style="color:var(--accent-gold);">0</span></div>
   </div>
   <div class="hud-pill" style="flex-direction:column; align-items:flex-end;">
-    <div>DASH [R-CLICK / SHIFT]</div>
+    <div>DASH [R-CLICK / SHIFT] | RESET [R]</div>
     <div class="dash-bar-wrap"><div id="dashFill" class="dash-bar-fill"></div></div>
   </div>
 </div>
@@ -136,6 +145,7 @@
         &bull; <b>LEFT CLICK / SPACE:</b> Attach tendril to cloud eyes.<br>
         &bull; <b>RAPID CLICK:</b> Thrust forward with speed.<br>
         &bull; <b>RIGHT CLICK / SHIFT:</b> Activate Sonic Dash when full.<br>
+        &bull; <b>PRESS 'R':</b> Instantly reset / end run.<br>
         &bull; Dodge <b>Spiked Void Eyes</b>!<br>
         &bull; <span style="color:var(--accent-gold)">Embers & upgrades save automatically to your browser!</span>
       </p>
@@ -156,7 +166,10 @@
     <p>Depth Reached: <b id="finalScore" style="color:var(--accent-red); font-size:22px;">0</b> m</p>
     <p>Embers Collected: <b id="finalEmbers" style="color:var(--accent-gold); font-size:22px;">0</b></p>
   </div>
-  <button class="btn" id="retryBtn">TRY AGAIN</button>
+  <div class="btn-group">
+    <button class="btn" id="retryBtn">TRY AGAIN</button>
+    <button class="btn btn-secondary" id="mainMenuBtn">MAIN MENU</button>
+  </div>
 </div>
 
 <script>
@@ -201,9 +214,7 @@
         const savedLvl = localStorage.getItem('oh_upg_' + key);
         if (savedLvl !== null) upgrades[key] = parseInt(savedLvl, 10) || 0;
       }
-    } catch(e) {
-      // localStorage may be restricted in sandboxed previews
-    }
+    } catch(e) {}
   }
 
   function saveData() {
@@ -415,9 +426,18 @@
   window.addEventListener('pointerdown', onDown);
   window.addEventListener('pointerup', () => { pointer.down = false; if (grapple) grapple.active = false; });
   window.addEventListener('contextmenu', e => e.preventDefault());
+  
   window.addEventListener('keydown', e => {
-    if (e.code === 'Space') { e.preventDefault(); onDown({ clientX: W/2, clientY: H/2, button: 0 }); }
+    if (e.code === 'Space') { 
+      e.preventDefault(); 
+      onDown({ clientX: W/2, clientY: H/2, button: 0 }); 
+    }
     if (e.shiftKey) triggerSonicDash();
+    if (e.key === 'r' || e.key === 'R') {
+      if (state === 'playing') {
+        gameOver();
+      }
+    }
   });
 
   function update(dt) {
@@ -608,11 +628,19 @@
     document.getElementById('hud').style.display = 'flex';
     initGame();
   };
+
   document.getElementById('retryBtn').onclick = () => {
     state = 'playing';
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('hud').style.display = 'flex';
     initGame();
+  };
+
+  document.getElementById('mainMenuBtn').onclick = () => {
+    state = 'start';
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    document.getElementById('hud').style.display = 'none';
   };
 
   resize();
